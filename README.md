@@ -44,7 +44,7 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Config tools\dualsub-all.config.json -Out _work\all
 ```
 
-参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。Python 版 `tools\dualsub.py` 参数一一对应（`--source`…），产出逐字节相同。
+参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。自检用 `powershell -ExecutionPolicy Bypass -File tools\verify.ps1`（all 版加 `-Config tools\dualsub-all.config.json -PackDir _work\all`）。
 
 配置项：`languages`（写哪几个语言槽）、`chinese_source`（某个槽用哪份中文）、`separator`（单行文本的分隔符）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言）、`files`（按包、按 FMG 的例外）、`font`（从游戏复制哪套字体）。
 
@@ -102,7 +102,7 @@ No arguments builds the less pack from the bundled `source\` into the package's 
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Config tools\dualsub-all.config.json -Out _work\all
 ```
 
-Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`. `tools\dualsub.py` takes the same options (`--source` …) and produces byte-identical packs.
+Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`. Check any build with `powershell -ExecutionPolicy Bypass -File tools\verify.ps1` (all build: add `-Config tools\dualsub-all.config.json -PackDir _work\all`).
 
 Config keys: `languages` (slots to write), `chinese_source` (which Chinese text a slot shows), `separator` (separator inside one line), `categories` (`true` merge · `"off"` untouched · `"sec_only"` secondary only), `files` (per-pack, per-FMG exceptions), `font` (which font pair to copy out of the game).
 

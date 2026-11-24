@@ -32,6 +32,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PackRoot = if ((Split-Path -Leaf $ScriptDir) -ieq 'tools') { Split-Path -Parent $ScriptDir } else { $ScriptDir }
@@ -143,6 +144,11 @@ function Expand-Pack([string]$DcxPath, [string]$WorkDir) {
     return [pscustomobject]@{ Bnd = $bnd; FmgDir = $fmgDir.FullName; Msgbnd = $msgbnd }
 }
 
+function ConvertTo-Lf([string]$text) {
+    if ($null -eq $text) { return '' }
+    return (($text -replace "`r`n", "`n") -replace "`r", "`n")
+}
+
 function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
     $xml = Join-Path $FmgDir ($Fmg + '.xml')
     Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
@@ -151,7 +157,7 @@ function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
     $doc.Load($xml)
     $map = @{}
     foreach ($el in $doc.SelectNodes('/fmg/entries/text')) {
-        $map[$el.GetAttribute('id')] = $el.InnerText
+        $map[$el.GetAttribute('id')] = ConvertTo-Lf $el.InnerText
     }
     return $map
 }
@@ -179,7 +185,7 @@ function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mo
         if ((Test-Null $a) -or (Test-Null $b)) { continue }
         if ((Get-Norm $a) -eq (Get-Norm $b)) { continue }
         if ($Mode -eq 'sec_only') {
-            if ($el.InnerText -cne $b) { $el.InnerText = $b; $changed++ }
+            if ((ConvertTo-Lf $el.InnerText) -cne $b) { $el.InnerText = $b; $changed++ }
             continue
         }
         if (Test-AlreadyMerged $a $b $Sep) { continue }
