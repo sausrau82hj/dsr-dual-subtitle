@@ -3,11 +3,10 @@
   "yabber_dir": "",
   "primary": "SCHINESE",
   "secondary": "ENGLISH",
-  "languages": ["ENGLISH", "SCHINESE", "TCHINESE"],
+  "languages": ["ENGLISH", "SCHINESE"],
   "chinese_source": {
     "ENGLISH": "SCHINESE",
-    "SCHINESE": "SCHINESE",
-    "TCHINESE": "TCHINESE"
+    "SCHINESE": "SCHINESE"
   },
   "separator": "\n",
   "packs": ["menu.msgbnd.dcx"],
