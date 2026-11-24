@@ -8,9 +8,9 @@ DARK SOULS: REMASTERED
 
 ## 中文
 
-只改 NPC 对话（`Conversation_.fmg`）与过场动画字幕（`Movie_subtitles_.fmg`），中文在上、英文在下。菜单、道具、按键提示等其余文本保持原版。
+只改 NPC 对话（`Conversation_.fmg`）与过场动画字幕（`Movie_subtitles_.fmg`）：两句语言同屏，游戏用哪种语言，哪种就在上面。菜单、道具、按键提示等其余文本保持原版。
 
-两个语言槽（`ENGLISH`、`SCHINESE`）写的是同一份文本，游戏语言设成英文或中文都能用；繁中槽保持原版。
+`msg\ENGLISH`、`msg\SCHINESE` 两个语言槽都已写好，主副语言在 `tools\dualsub.config.json` 的 `primary` / `secondary` 里换。`msg` 里同时带着未改动的 `item.msgbnd.dcx`，整个文件夹覆盖也不会缺文件。
 
 ### 安装
 
@@ -35,14 +35,16 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 不带参数就是重建本包：读包里的 `source\`，按 `tools\dualsub.config.json` 写回 `msg\` 和 `font\`。
 
-参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。
+参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Config`、`-KeepWork`。
 
-配置项：`languages`（写哪几个语言槽）、`chinese_source`（某个槽用哪份中文）、`separator`（单行文本的分隔符）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言）、`files`（按包、按 FMG 的例外）、`fit`（对话框放得下几行、多宽，放不下怎么排）、`font`（从游戏复制哪套字体）。
+配置项：`primary` / `secondary`（这一对语言，默认 `SCHINESE` / `ENGLISH`，可对调）、`separator`（单行文本的分隔符，默认换行）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留第二语言）、`files`（按包、按 FMG 的例外）。
+
+默认只开 `Dialogue` 与 `Cutscene Subtitles`。别的类别想双语就把对应的值改成 `true`：工具会照配置直接合并，不再替排版做取舍。
 
 ### 已知限制
 
 - 只改文本；别的 mod 也换 `msg` 时，把它的文件放进 `source\` 再生成。
-- 对话框只放得下 3 行。放不下的对话改成同行「中文 / English」，再放不下的（每语言 7 条）保留原文——中文槽是中文、英文槽是英文。行数与宽度在配置的 `fit` 里调。
+- 对话和字幕这两个框会按容量排版：放不下的改成同一行、中间用 ` / ` 隔开，再放不下的保留原文。其他类别不受保护——开了以后框小的地方（菜单行、按钮、按键提示）会压字。
 
 ### 致谢
 
@@ -52,9 +54,9 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 ## English
 
-NPC dialogue (`Conversation_.fmg`) and cutscene subtitles (`Movie_subtitles_.fmg`) only, Chinese on top and English underneath. Menus, items and key prompts stay vanilla.
+NPC dialogue (`Conversation_.fmg`) and cutscene subtitles (`Movie_subtitles_.fmg`) only: both languages in one entry, the game's own language on top. Menus, items and key prompts stay vanilla.
 
-Both slots (`ENGLISH`, `SCHINESE`) hold the same text, so the pack works whether the game is set to English or Chinese; the Traditional Chinese slot stays vanilla.
+`msg\ENGLISH` and `msg\SCHINESE` are both written; swap the pair in `tools\dualsub.config.json` (`primary` / `secondary`). `msg` also carries the untouched `item.msgbnd.dcx`, so replacing the whole folder leaves no gap.
 
 ### Install
 
@@ -79,14 +81,16 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 No arguments rebuilds the package: it reads the bundled `source\` and writes `msg\` and `font\` with the shipped config.
 
-Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`.
+Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Config`, `-KeepWork`.
 
-Config keys: `languages` (slots to write), `chinese_source` (which Chinese text a slot shows), `separator` (separator inside one line), `categories` (`true` merge · `"off"` untouched · `"sec_only"` secondary only), `files` (per-pack, per-FMG exceptions), `fit` (how many lines and how wide the dialogue box is, and what to do with what does not fit), `font` (which font pair to copy out of the game).
+Config keys: `primary` / `secondary` (the pair, default `SCHINESE` / `ENGLISH`, swap freely), `separator` (separator inside one line, newline by default), `categories` (`true` merge · `"off"` untouched · `"sec_only"` second language only), `files` (per-pack, per-FMG exceptions).
+
+Only `Dialogue` and `Cutscene Subtitles` are on by default. Set another category to `true` and the tool merges it as configured — it does not second-guess the layout for you.
 
 ### Known limitations
 
 - Text only. If another mod also replaces `msg`, put its files in `source\` and rebuild.
-- The dialogue box holds three lines. Anything longer is put on one line, `中文 / English`; the seven per language that still do not fit keep the vanilla text — Chinese in the Chinese slot, English in the English slot. `fit` in the config sets the line count and width.
+- The dialogue and subtitle boxes are fitted: anything longer goes on one line separated by ` / `, and what still does not fit keeps the vanilla text. Other categories get no such protection — small boxes (menu rows, buttons, key prompts) will overlap once you enable them.
 
 ### Credits
 

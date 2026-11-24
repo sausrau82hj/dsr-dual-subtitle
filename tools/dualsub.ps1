@@ -26,7 +26,6 @@ param(
     [string]$Yabber,
     [string]$Primary,
     [string]$Secondary,
-    [string]$Filter,
     [string]$Config,
     [switch]$KeepWork
 )
@@ -171,18 +170,14 @@ function Get-RenderedLines([string]$text, [int]$width) {
     return $total
 }
 
-function Get-FitSettings($Cfg, [string]$Fmg) {
-    $fit = $Cfg.fit
-    if (-not $fit -or -not $fit.enabled) { return $null }
-    $fmgs = @($fit.fmgs)
-    if ($fmgs.Count -gt 0 -and ($fmgs -notcontains $Fmg)) { return $null }
-    $max = if ($fit.max_lines) { [int]$fit.max_lines } else { 3 }
-    $w = if ($fit.line_width) { [int]$fit.line_width } else { 60 }
-    return [pscustomobject]@{ Max = $max; Width = $w }
+function Get-FitSettings([string]$Fmg) {
+    # The NPC dialogue box holds three lines, the subtitle strip two. Everything else is
+    # merged as-is: if you enable a category, its box is your problem.
+    if ($Fmg -eq 'Conversation_.fmg') { return [pscustomobject]@{ Max = 3; Width = 60; Inline = $true } }
+    if ($Fmg -eq 'Movie_subtitles_.fmg') { return [pscustomobject]@{ Max = 2; Width = 62; Inline = $true } }
+    return $null
 }
 
-# Pick the text that goes into one entry: stacked when it fits the box, then inline
-# (Chinese and English on one paragraph), otherwise keep the entry as it is.
 function Join-Flat([string]$text) {
     $parts = $text.Split("`n")
     $sb = New-Object System.Text.StringBuilder
@@ -203,24 +198,13 @@ function Get-MergedText([string]$a, [string]$b, [string]$sep, $Fit) {
     if ((Get-RenderedLines $cand $Fit.Width) -le $Fit.Max) {
         return [pscustomobject]@{ Text = $cand; Inline = $false; Skip = $false }
     }
+    if (-not $Fit.Inline) { return [pscustomobject]@{ Text = ''; Inline = $false; Skip = $true } }
     $flat = ((Join-Flat $a) + " / " + (Join-Flat $b))
     $flat = ($flat -replace '\s{2,}', ' ').Trim()
     if ((Get-RenderedLines $flat $Fit.Width) -le $Fit.Max) {
         return [pscustomobject]@{ Text = $flat; Inline = $true; Skip = $false }
     }
     return [pscustomobject]@{ Text = ''; Inline = $false; Skip = $true }
-}
-
-function Get-ShortLabelLimit($Cfg, [string]$Fmg) {
-    $s = $Cfg.skip_short
-    $units = 8
-    if ($s) {
-        if ($null -ne $s.units) { $units = [int]$s.units }
-        elseif ($s.enabled -eq $false) { return 0 }
-        $except = @($s.except)
-        if ($except.Count -gt 0 -and ($except -contains $Fmg)) { return 0 }
-    }
-    return $units
 }
 
 function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
@@ -245,7 +229,7 @@ function Save-XmlDoc([System.Xml.XmlDocument]$Doc, [string]$Path) {
     try { $Doc.Save($writer) } finally { $writer.Close() }
 }
 
-function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep, $Fit, [int]$ShortLimit) {
+function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep, $Fit) {
     $xml = Join-Path $FmgDir ($Fmg + '.xml')
     Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
     $doc = New-Object System.Xml.XmlDocument
@@ -265,14 +249,6 @@ function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mo
             continue
         }
         if (Test-AlreadyMerged $a $b $Sep) { continue }
-        # Entries carrying engine tags (<?key?>, <?joinName?>) render a glyph or a value in
-        # place of the tag: merging duplicates it, which shows up as two button icons.
-        if ($a.Contains('<?') -or $b.Contains('<?')) { $skipped++; continue }
-        # Short labels ("交谈", "Talk", "是") sit in a box only as wide as the label itself.
-        if ($ShortLimit -gt 0 -and (Get-TextUnits ((ConvertTo-Lf $el.InnerText).Trim())) -le $ShortLimit) {
-            $skipped++
-            continue
-        }
         $merged = Get-MergedText $a $b $Sep $Fit
         if ($merged.Skip) { $skipped++; continue }
         $el.InnerText = $merged.Text
@@ -313,7 +289,11 @@ function Get-Category([string]$Fmg) {
         'System_message_win32_.fmg'        { return 'System Messages' }
         'System_specific_tags_win32_.fmg'  { return 'System Messages' }
         'Blood_writing_.fmg'       { return 'Blood Messages' }
-        default                    { return 'Other' }
+        default {
+            if ($Fmg -like '*_name_.fmg') { return 'Item Names' }
+            if ($Fmg -like '*_description_.fmg' -or $Fmg -like '*_long_desc_.fmg') { return 'Item Descriptions' }
+            return 'Other'
+        }
     }
 }
 
@@ -362,11 +342,10 @@ function Get-Separator($Cfg, [string]$Pack, [string]$Fmg) {
 
 if (-not (Test-Path -LiteralPath $ConfigPath)) { throw "Config not found: $ConfigPath" }
 $cfg = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-if ($Primary) { $cfg.primary = $Primary }
-if ($Secondary) { $cfg.secondary = $Secondary }
-if ($Game) { $cfg.game = $Game }
-if (-not $cfg.game) { $cfg.game = Get-DefaultGame }
-if (-not $cfg.languages) { $cfg.languages = @($cfg.primary, $cfg.secondary) }
+
+$primary = if ($Primary) { $Primary } elseif ($cfg.primary) { [string]$cfg.primary } else { 'SCHINESE' }
+$secondary = if ($Secondary) { $Secondary } elseif ($cfg.secondary) { [string]$cfg.secondary } else { 'ENGLISH' }
+$gameDir = if ($Game) { $Game } else { Get-DefaultGame }
 
 $srcDir = if ($Source) { $Source } else { Join-Path $PackRoot 'source' }
 if (-not (Test-Path -LiteralPath (Join-Path $srcDir 'msg'))) {
@@ -374,31 +353,18 @@ if (-not (Test-Path -LiteralPath (Join-Path $srcDir 'msg'))) {
 }
 $outDir = if ($Out) { $Out } else { $PackRoot }
 
-$yabberDir = if ($Yabber) { $Yabber } elseif ($cfg.yabber_dir) { $cfg.yabber_dir } else { Find-YabberDir '' }
+$yabberDir = if ($Yabber) { $Yabber } else { Find-YabberDir '' }
 $script:YabberExe = Join-Path $yabberDir 'Yabber.exe'
 $script:YabberDcx = Join-Path $yabberDir 'Yabber.DCX.exe'
 
-$primary = [string]$cfg.primary
-$secondary = [string]$cfg.secondary
-$languages = @($cfg.languages)
-
-$packs = @($cfg.packs)
-if (-not $packs -or $packs.Count -eq 0) { $packs = @('menu.msgbnd.dcx') }
-$names = @($packs | Where-Object {
-    $pack = $_
-    $all = $true
-    foreach ($lang in $languages) {
-        if (-not (Test-Path -LiteralPath (Join-Path $srcDir "msg\$lang\$pack"))) { $all = $false }
-    }
-    $all
-})
-if ($Filter) { $names = @($names | Where-Object { (Get-Stem $_) -like $Filter }) }
-if ($names.Count -eq 0) { throw 'No text packs to process' }
+# Every language slot gets $primary on top and $secondary underneath.
+$languages = @($secondary, $primary)
+$packs = @('menu.msgbnd.dcx', 'item.msgbnd.dcx')
 
 $started = Get-Date
 Write-Step "Source: $srcDir"
 Write-Step "Output: $outDir"
-Write-Step "Languages: $primary + $secondary -> $($languages -join ', ')"
+Write-Step "Text: $primary + $secondary -> $($languages -join ', ')"
 Write-Step ''
 
 $totalFmg = 0
@@ -406,45 +372,42 @@ $totalEntries = 0
 $totalInline = 0
 $totalSkipped = 0
 
-foreach ($pack in $names) {
+foreach ($pack in $packs) {
     $stem = Get-Stem $pack
     $workRoot = Join-Path $outDir "_work\$stem"
     if (Test-Path -LiteralPath $workRoot) { Remove-Item -LiteralPath $workRoot -Recurse -Force }
 
-    $sec = Expand-Pack (Join-Path $srcDir "msg\$secondary\$pack") (Join-Path $workRoot $secondary)
-    $secTexts = @{}
-    foreach ($fmg in (Get-ChildItem -LiteralPath $sec.FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {
-        $secTexts[$fmg] = Get-FmgEntries $sec.FmgDir $fmg
+    $packDirs = @{}
+    $packTexts = @{}
+    foreach ($lang in $languages) {
+        $dirs = Expand-Pack (Join-Path $srcDir "msg\$lang\$pack") (Join-Path $workRoot $lang)
+        $packDirs[$lang] = $dirs
+        $texts = @{}
+        foreach ($fmg in (Get-ChildItem -LiteralPath $dirs.FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {
+            $texts[$fmg] = Get-FmgEntries $dirs.FmgDir $fmg
+        }
+        $packTexts[$lang] = $texts
     }
 
     Write-Step "[$pack]"
     foreach ($lang in $languages) {
-        $tgt = if ($lang -eq $secondary) { $sec } else {
-            Expand-Pack (Join-Path $srcDir "msg\$lang\$pack") (Join-Path $workRoot $lang)
-        }
+        # the slot's own language goes on top, the other one underneath
+        $topLang = if ($lang -eq $primary -or $lang -eq $secondary) { $lang } else { $primary }
+        $bottomLang = if ($topLang -eq $primary) { $secondary } else { $primary }
 
-        $topLang = $lang
-        if ($cfg.chinese_source) {
-            $node = $cfg.chinese_source.PSObject.Properties[$lang]
-            if ($node -and $node.Value) { $topLang = [string]$node.Value }
-        } elseif ($lang -eq $secondary) { $topLang = $primary }
+        $tgt = $packDirs[$lang]
+        $topDir = $packDirs[$topLang].FmgDir
+        $bottomDir = $packDirs[$bottomLang].FmgDir
 
-        $topDir = if ($topLang -eq $lang) { $tgt.FmgDir } else {
-            (Expand-Pack (Join-Path $srcDir "msg\$topLang\$pack") (Join-Path $workRoot ($topLang + '_src'))).FmgDir
-        }
-
-        $cache = @{}
         $changedTotal = 0
         foreach ($fmg in (Get-ChildItem -LiteralPath $tgt.FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {
             $mode = Get-Mode $cfg $pack $fmg
             if ($mode -eq 'off') { continue }
-            if (-not $secTexts.ContainsKey($fmg)) { Write-Step "  - skip $fmg (missing in $secondary)"; continue }
-            $key = "$topLang|$fmg"
-            if (-not $cache.ContainsKey($key)) { $cache[$key] = Get-FmgEntries $topDir $fmg }
+            $top = $packTexts[$topLang][$fmg]
+            $bottom = $packTexts[$bottomLang][$fmg]
             $sep = Get-Separator $cfg $pack $fmg
-            $fit = Get-FitSettings $cfg $fmg
-            $shortLimit = Get-ShortLabelLimit $cfg $fmg
-            $res = Update-Fmg $tgt.FmgDir $fmg $cache[$key] $secTexts[$fmg] $mode $sep $fit $shortLimit
+            $fit = Get-FitSettings $fmg
+            $res = Update-Fmg $tgt.FmgDir $fmg $top $bottom $mode $sep $fit
             $n = $res.Changed
             if ($res.Skipped -gt 0) { $totalSkipped += $res.Skipped }
             if ($res.Inline -gt 0) { $totalInline += $res.Inline }
@@ -469,22 +432,51 @@ foreach ($pack in $names) {
         Write-Step "  -> $dst"
     }
 
-    if ($cfg.font -and $cfg.font.enabled) {
-        $fontSrc = Join-Path $cfg.game ("font\" + $cfg.font.source)
-        $fontDst = Join-Path $outDir ("font\" + $cfg.font.target)
-        New-Item -ItemType Directory -Force -Path $fontDst | Out-Null
-        foreach ($f in @($cfg.font.files)) {
-            Copy-Item -LiteralPath (Join-Path $fontSrc $f) -Destination (Join-Path $fontDst $f) -Force
-        }
-        Write-Step "  -> $fontDst"
-    }
-
     if (-not $KeepWork) { Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction SilentlyContinue }
     Write-Step ''
 }
 
+# A pack whose categories are all off ships untouched, so replacing the whole msg
+# folder leaves no gap.
+foreach ($pack in $packs) {
+    foreach ($lang in $languages) {
+        $src = Join-Path $srcDir "msg\$lang\$pack"
+        $dst = Join-Path $outDir "msg\$lang\$pack"
+        if (-not (Test-Path -LiteralPath $src) -or (Test-Path -LiteralPath $dst)) { continue }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+        Write-Step "  -> $dst (unchanged)"
+    }
+}
+
+# The primary language's dialogue font carries the CJK glyphs the other slots lack.
+$fontSrcDir = Join-Path $gameDir ("font\" + $primary.ToLowerInvariant())
+$fontFiles = @('TalkFont24.ccm.dcx', 'TalkFont24.tpf.dcx')
+# Menus, items and the rest draw with DSFont24, so bilingual UI text needs that atlas too.
+$uiOn = $false
+if ($cfg.categories) {
+    foreach ($name in $cfg.categories.PSObject.Properties.Name) {
+        if ($name -in @('Dialogue', 'Cutscene Subtitles')) { continue }
+        if ([string](Get-ModeValue $cfg.categories.$name) -ne 'off') { $uiOn = $true }
+    }
+}
+if ($uiOn) { $fontFiles += @('DSFont24.ccm.dcx', 'DSFont24.tpf.dcx') }
+
+if (Test-Path -LiteralPath $fontSrcDir) {
+    foreach ($lang in $languages) {
+        if ($lang -eq $primary) { continue }
+        $fontDst = Join-Path $outDir ("font\" + $lang)
+        New-Item -ItemType Directory -Force -Path $fontDst | Out-Null
+        foreach ($f in $fontFiles) {
+            $src = Join-Path $fontSrcDir $f
+            if (Test-Path -LiteralPath $src) { Copy-Item -LiteralPath $src -Destination (Join-Path $fontDst $f) -Force }
+        }
+        Write-Step "  -> $fontDst"
+    }
+}
+
 $elapsed = (Get-Date) - $started
-Write-Step ("Done: {0} pack(s), {1} FMGs, {2} entries, in {3:N1}s" -f $names.Count, $totalFmg, $totalEntries, $elapsed.TotalSeconds)
+Write-Step ("Done: {0} pack(s), {1} FMGs, {2} entries, in {3:N1}s" -f $packs.Count, $totalFmg, $totalEntries, $elapsed.TotalSeconds)
 if ($totalInline -gt 0 -or $totalSkipped -gt 0) {
     Write-Step ("Fitted to the box: {0} inline, {1} left as they were" -f $totalInline, $totalSkipped)
 }

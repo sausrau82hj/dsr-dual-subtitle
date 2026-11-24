@@ -1,15 +1,7 @@
 {
-  "game": "",
-  "yabber_dir": "",
   "primary": "SCHINESE",
   "secondary": "ENGLISH",
-  "languages": ["ENGLISH", "SCHINESE"],
-  "chinese_source": {
-    "ENGLISH": "SCHINESE",
-    "SCHINESE": "SCHINESE"
-  },
   "separator": "\n",
-  "packs": ["menu.msgbnd.dcx"],
   "categories": {
     "Dialogue": true,
     "Cutscene Subtitles": true,
@@ -19,23 +11,9 @@
     "Key Prompts": "off",
     "Help Text": "off",
     "System Messages": "off",
-    "Blood Messages": "off"
+    "Blood Messages": "off",
+    "Item Names": "off",
+    "Item Descriptions": "off"
   },
-  "files": {},
-  "skip_short": {
-    "units": 8,
-    "except": ["Conversation_.fmg", "Movie_subtitles_.fmg"]
-  },
-  "fit": {
-    "enabled": true,
-    "max_lines": 3,
-    "line_width": 60,
-    "fmgs": ["Conversation_.fmg"]
-  },
-  "font": {
-    "enabled": true,
-    "source": "schinese",
-    "target": "ENGLISH",
-    "files": ["TalkFont24.ccm.dcx", "TalkFont24.tpf.dcx"]
-  }
+  "files": {}
 }
