@@ -149,6 +149,68 @@ function ConvertTo-Lf([string]$text) {
     return (($text -replace "`r`n", "`n") -replace "`r", "`n")
 }
 
+function Get-TextUnits([string]$text) {
+    $n = 0
+    foreach ($ch in $text.ToCharArray()) {
+        $c = [int]$ch
+        if (($c -ge 0x1100 -and $c -le 0x115F) -or ($c -ge 0x2E80 -and $c -le 0xA4CF) -or
+            ($c -ge 0xAC00 -and $c -le 0xD7A3) -or ($c -ge 0xF900 -and $c -le 0xFAFF) -or
+            ($c -ge 0xFE30 -and $c -le 0xFE4F) -or ($c -ge 0xFF00 -and $c -le 0xFF60) -or
+            ($c -ge 0xFFE0 -and $c -le 0xFFE6) -or ($c -ge 0x3000 -and $c -le 0x303F)) { $n += 2 }
+        else { $n += 1 }
+    }
+    return $n
+}
+
+function Get-RenderedLines([string]$text, [int]$width) {
+    if ($width -le 0) { return 999 }
+    $total = 0
+    foreach ($line in $text.Split("`n")) {
+        $total += [Math]::Max(1, [int][Math]::Ceiling((Get-TextUnits $line) / $width))
+    }
+    return $total
+}
+
+function Get-FitSettings($Cfg, [string]$Fmg) {
+    $fit = $Cfg.fit
+    if (-not $fit -or -not $fit.enabled) { return $null }
+    $fmgs = @($fit.fmgs)
+    if ($fmgs.Count -gt 0 -and ($fmgs -notcontains $Fmg)) { return $null }
+    $max = if ($fit.max_lines) { [int]$fit.max_lines } else { 3 }
+    $w = if ($fit.line_width) { [int]$fit.line_width } else { 60 }
+    return [pscustomobject]@{ Max = $max; Width = $w }
+}
+
+# Pick the text that goes into one entry: stacked when it fits the box, then inline
+# (Chinese and English on one paragraph), otherwise keep the entry as it is.
+function Join-Flat([string]$text) {
+    $parts = $text.Split("`n")
+    $sb = New-Object System.Text.StringBuilder
+    for ($i = 0; $i -lt $parts.Count; $i++) {
+        $p = $parts[$i].Trim()
+        if ($i -eq 0) { [void]$sb.Append($p); continue }
+        $prevLine = $parts[$i - 1].TrimEnd()
+        $prev = if ($prevLine.Length -gt 0) { $prevLine.Substring($prevLine.Length - 1) } else { '' }
+        if ($prev -and (Get-TextUnits $prev) -eq 2) { [void]$sb.Append($p) }
+        else { [void]$sb.Append(' ').Append($p) }
+    }
+    return $sb.ToString()
+}
+
+function Get-MergedText([string]$a, [string]$b, [string]$sep, $Fit) {
+    $cand = $a.TrimEnd([char[]]@("`n")) + $sep + $b.TrimEnd([char[]]@("`n"))
+    if (-not $Fit) { return [pscustomobject]@{ Text = $cand; Inline = $false; Skip = $false } }
+    if ((Get-RenderedLines $cand $Fit.Width) -le $Fit.Max) {
+        return [pscustomobject]@{ Text = $cand; Inline = $false; Skip = $false }
+    }
+    $flat = ((Join-Flat $a) + " / " + (Join-Flat $b))
+    $flat = ($flat -replace '\s{2,}', ' ').Trim()
+    if ((Get-RenderedLines $flat $Fit.Width) -le $Fit.Max) {
+        return [pscustomobject]@{ Text = $flat; Inline = $true; Skip = $false }
+    }
+    return [pscustomobject]@{ Text = ''; Inline = $false; Skip = $true }
+}
+
 function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
     $xml = Join-Path $FmgDir ($Fmg + '.xml')
     Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
@@ -171,13 +233,15 @@ function Save-XmlDoc([System.Xml.XmlDocument]$Doc, [string]$Path) {
     try { $Doc.Save($writer) } finally { $writer.Close() }
 }
 
-function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep) {
+function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep, $Fit) {
     $xml = Join-Path $FmgDir ($Fmg + '.xml')
     Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
     $doc = New-Object System.Xml.XmlDocument
     $doc.PreserveWhitespace = $true
     $doc.Load($xml)
     $changed = 0
+    $inline = 0
+    $skipped = 0
     foreach ($el in $doc.SelectNodes('/fmg/entries/text')) {
         $id = $el.GetAttribute('id')
         $a = if ($TopMap.ContainsKey($id)) { [string]$TopMap[$id] } else { '' }
@@ -189,7 +253,10 @@ function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mo
             continue
         }
         if (Test-AlreadyMerged $a $b $Sep) { continue }
-        $el.InnerText = ($a.TrimEnd([char[]]@("`n"))) + $Sep + ($b.TrimEnd([char[]]@("`n")))
+        $merged = Get-MergedText $a $b $Sep $Fit
+        if ($merged.Skip) { $skipped++; continue }
+        $el.InnerText = $merged.Text
+        if ($merged.Inline) { $inline++ }
         $changed++
     }
     if ($changed -gt 0) {
@@ -197,7 +264,7 @@ function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mo
         Invoke-Yabber $script:YabberExe $xml
     }
     Remove-Item -LiteralPath $xml -Force
-    return $changed
+    return [pscustomobject]@{ Changed = $changed; Inline = $inline; Skipped = $skipped }
 }
 
 function Get-ModeValue($Value) {
@@ -316,6 +383,8 @@ Write-Step ''
 
 $totalFmg = 0
 $totalEntries = 0
+$totalInline = 0
+$totalSkipped = 0
 
 foreach ($pack in $names) {
     $stem = Get-Stem $pack
@@ -353,12 +422,19 @@ foreach ($pack in $names) {
             $key = "$topLang|$fmg"
             if (-not $cache.ContainsKey($key)) { $cache[$key] = Get-FmgEntries $topDir $fmg }
             $sep = Get-Separator $cfg $pack $fmg
-            $n = Update-Fmg $tgt.FmgDir $fmg $cache[$key] $secTexts[$fmg] $mode $sep
+            $fit = Get-FitSettings $cfg $fmg
+            $res = Update-Fmg $tgt.FmgDir $fmg $cache[$key] $secTexts[$fmg] $mode $sep $fit
+            $n = $res.Changed
+            if ($res.Skipped -gt 0) { $totalSkipped += $res.Skipped }
+            if ($res.Inline -gt 0) { $totalInline += $res.Inline }
             if ($n -gt 0) {
                 $changedTotal += $n
                 $totalFmg++
                 $totalEntries += $n
-                Write-Step "  + $lang/$fmg`: $n entries"
+                $note = ''
+                if ($res.Inline -gt 0) { $note += ", $($res.Inline) inline" }
+                if ($res.Skipped -gt 0) { $note += ", $($res.Skipped) left as-is" }
+                Write-Step "  + $lang/$fmg`: $n entries$note"
             }
         }
 
@@ -388,4 +464,7 @@ foreach ($pack in $names) {
 
 $elapsed = (Get-Date) - $started
 Write-Step ("Done: {0} pack(s), {1} FMGs, {2} entries, in {3:N1}s" -f $names.Count, $totalFmg, $totalEntries, $elapsed.TotalSeconds)
+if ($totalInline -gt 0 -or $totalSkipped -gt 0) {
+    Write-Step ("Fitted to the box: {0} inline, {1} left as they were" -f $totalInline, $totalSkipped)
+}
 Write-Step "Mod files in: $outDir"

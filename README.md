@@ -42,13 +42,13 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。自检用 `powershell -ExecutionPolicy Bypass -File tools\verify.ps1`。
 
-配置项：`languages`（写哪几个语言槽）、`chinese_source`（某个槽用哪份中文）、`separator`（单行文本的分隔符）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言）、`files`（按包、按 FMG 的例外）、`font`（从游戏复制哪套字体）。
+配置项：`languages`（写哪几个语言槽）、`chinese_source`（某个槽用哪份中文）、`separator`（单行文本的分隔符）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言）、`files`（按包、按 FMG 的例外）、`fit`（对话框放得下几行、多宽，放不下怎么排）、`font`（从游戏复制哪套字体）。
 
 ### 已知限制
 
 - 只改文本；别的 mod 也换 `msg` 时，把它的文件放进 `source\` 再生成。
 - all 版的菜单、按键提示是单行双语，个别按钮会偏挤。
-- 英文较长的对话会占三四行，个别顶到对话框下沿。
+- 对话框只放得下 3 行。放不下的对话改成同行「中文 / English」，再放不下的（每语言 7 条）保留原文——中文槽是中文、英文槽是英文。行数与宽度在配置的 `fit` 里调。
 
 ### 更精细的修改
 
@@ -96,13 +96,13 @@ No arguments rebuilds this package: `tools\dualsub.config.json` matches the `msg
 
 Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`. Check any build with `powershell -ExecutionPolicy Bypass -File tools\verify.ps1`.
 
-Config keys: `languages` (slots to write), `chinese_source` (which Chinese text a slot shows), `separator` (separator inside one line), `categories` (`true` merge · `"off"` untouched · `"sec_only"` secondary only), `files` (per-pack, per-FMG exceptions), `font` (which font pair to copy out of the game).
+Config keys: `languages` (slots to write), `chinese_source` (which Chinese text a slot shows), `separator` (separator inside one line), `categories` (`true` merge · `"off"` untouched · `"sec_only"` secondary only), `files` (per-pack, per-FMG exceptions), `fit` (how many lines and how wide the dialogue box is, and what to do with what does not fit), `font` (which font pair to copy out of the game).
 
 ### Known limitations
 
 - Text only. If another mod also replaces `msg`, put its files in `source\` and rebuild.
 - In the all build, menus and key prompts are bilingual on one line, so a few buttons get tight.
-- A long English line can take a dialogue entry to three or four lines, and a few sit against the bottom of the box.
+- The dialogue box holds three lines. Anything longer is put on one line, `中文 / English`; the seven per language that still do not fit keep the vanilla text — Chinese in the Chinese slot, English in the English slot. `fit` in the config sets the line count and width.
 
 ### Finer edits
 

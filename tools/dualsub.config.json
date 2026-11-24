@@ -23,6 +23,12 @@
     "Blood Messages": "off"
   },
   "files": {},
+  "fit": {
+    "enabled": true,
+    "max_lines": 3,
+    "line_width": 60,
+    "fmgs": ["Conversation_.fmg"]
+  },
   "font": {
     "enabled": true,
     "source": "schinese",

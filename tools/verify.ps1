@@ -108,6 +108,66 @@ function ConvertTo-Lf([string]$text) {
     return (($text -replace "`r`n", "`n") -replace "`r", "`n")
 }
 
+function Get-TextUnits([string]$text) {
+    $n = 0
+    foreach ($ch in $text.ToCharArray()) {
+        $c = [int]$ch
+        if (($c -ge 0x1100 -and $c -le 0x115F) -or ($c -ge 0x2E80 -and $c -le 0xA4CF) -or
+            ($c -ge 0xAC00 -and $c -le 0xD7A3) -or ($c -ge 0xF900 -and $c -le 0xFAFF) -or
+            ($c -ge 0xFE30 -and $c -le 0xFE4F) -or ($c -ge 0xFF00 -and $c -le 0xFF60) -or
+            ($c -ge 0xFFE0 -and $c -le 0xFFE6) -or ($c -ge 0x3000 -and $c -le 0x303F)) { $n += 2 }
+        else { $n += 1 }
+    }
+    return $n
+}
+
+function Get-RenderedLines([string]$text, [int]$width) {
+    if ($width -le 0) { return 999 }
+    $total = 0
+    foreach ($line in $text.Split("`n")) {
+        $total += [Math]::Max(1, [int][Math]::Ceiling((Get-TextUnits $line) / $width))
+    }
+    return $total
+}
+
+function Get-FitSettings($Cfg, [string]$Fmg) {
+    $fit = $Cfg.fit
+    if (-not $fit -or -not $fit.enabled) { return $null }
+    $fmgs = @($fit.fmgs)
+    if ($fmgs.Count -gt 0 -and ($fmgs -notcontains $Fmg)) { return $null }
+    $max = if ($fit.max_lines) { [int]$fit.max_lines } else { 3 }
+    $w = if ($fit.line_width) { [int]$fit.line_width } else { 60 }
+    return [pscustomobject]@{ Max = $max; Width = $w }
+}
+
+function Join-Flat([string]$text) {
+    $parts = $text.Split("`n")
+    $sb = New-Object System.Text.StringBuilder
+    for ($i = 0; $i -lt $parts.Count; $i++) {
+        $p = $parts[$i].Trim()
+        if ($i -eq 0) { [void]$sb.Append($p); continue }
+        $prevLine = $parts[$i - 1].TrimEnd()
+        $prev = if ($prevLine.Length -gt 0) { $prevLine.Substring($prevLine.Length - 1) } else { '' }
+        if ($prev -and (Get-TextUnits $prev) -eq 2) { [void]$sb.Append($p) }
+        else { [void]$sb.Append(' ').Append($p) }
+    }
+    return $sb.ToString()
+}
+
+function Get-MergedText([string]$a, [string]$b, [string]$sep, $Fit) {
+    $cand = $a.TrimEnd([char[]]@("`n")) + $sep + $b.TrimEnd([char[]]@("`n"))
+    if (-not $Fit) { return [pscustomobject]@{ Text = $cand; Inline = $false; Skip = $false } }
+    if ((Get-RenderedLines $cand $Fit.Width) -le $Fit.Max) {
+        return [pscustomobject]@{ Text = $cand; Inline = $false; Skip = $false }
+    }
+    $flat = ((Join-Flat $a) + " / " + (Join-Flat $b))
+    $flat = ($flat -replace '\s{2,}', ' ').Trim()
+    if ((Get-RenderedLines $flat $Fit.Width) -le $Fit.Max) {
+        return [pscustomobject]@{ Text = $flat; Inline = $true; Skip = $false }
+    }
+    return [pscustomobject]@{ Text = ''; Inline = $false; Skip = $true }
+}
+
 function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
     $fmgPath = Join-Path $FmgDir $Fmg
     if ($script:TextCache.ContainsKey($fmgPath)) { return $script:TextCache[$fmgPath] }
@@ -264,6 +324,7 @@ try {
                 if ($bk -ne $vk) { $errors.Add("${lang}/${fmg}: entry ids differ"); continue }
                 $top = Get-FmgEntries $van[$topLang] $fmg
                 $sep = Get-Separator $cfg $pack $fmg
+                $fit = Get-FitSettings $cfg $fmg
                 $n = 0
                 foreach ($key in $vt.Keys) {
                     $original = [string]$vt[$key]
@@ -274,7 +335,8 @@ try {
                     } elseif ($mode -eq 'sec_only') {
                         $expected = $b
                     } else {
-                        $expected = $a.TrimEnd([char[]]@("`n")) + $sep + $b.TrimEnd([char[]]@("`n"))
+                        $merged = Get-MergedText $a $b $sep $fit
+                        $expected = if ($merged.Skip) { $original } else { $merged.Text }
                     }
                     $got = [string]$bt[$key]
                     if ($got -cne $expected) {
