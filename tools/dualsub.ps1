@@ -1,0 +1,384 @@
+<#
+.SYNOPSIS
+  DARK SOULS: REMASTERED dual-language text builder (Windows PowerShell 5.1, no Python).
+
+.DESCRIPTION
+  Reads the packs from <source>\msg\<LANG>\menu.msgbnd.dcx, merges the Chinese and English
+  text of the selected FMGs into one entry (Chinese on top, English underneath), writes the
+  result into every language slot and repacks the packs into <out>\msg\<LANG>\. The Chinese
+  dialogue font is copied into <out>\font\<secondary>, because the English slot's atlas has
+  no CJK glyphs.
+
+  All container work (DCX, BND3, FMG) is done by Yabber; this script only walks folders,
+  edits the FMG XML and calls Yabber to repack.
+
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
+
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Filter menu -KeepWork
+#>
+[CmdletBinding()]
+param(
+    [string]$Source,
+    [string]$Out,
+    [string]$Game,
+    [string]$Yabber,
+    [string]$Primary,
+    [string]$Secondary,
+    [string]$Filter,
+    [switch]$KeepWork
+)
+
+$ErrorActionPreference = 'Stop'
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$PackRoot = if ((Split-Path -Leaf $ScriptDir) -ieq 'tools') { Split-Path -Parent $ScriptDir } else { $ScriptDir }
+$ConfigPath = Join-Path $ScriptDir 'dualsub.config.json'
+
+$script:NullMarkers = @('', 'null', '%null%')
+$script:MultiLineFmgs = @('Conversation_.fmg', 'Movie_subtitles_.fmg', 'Event_text_.fmg')
+
+function Write-Step([string]$Text) { Write-Host $Text }
+
+function Test-Null($text) {
+    if ($null -eq $text) { return $true }
+    return ($script:NullMarkers -contains $text.Trim().ToLowerInvariant())
+}
+
+function Get-Norm([string]$text) {
+    if ($null -eq $text) { return '' }
+    return ($text -replace '\s+', '').ToLowerInvariant()
+}
+
+function Test-AlreadyMerged([string]$a, [string]$b, [string]$sep) {
+    if (-not $sep) { return $false }
+    if ($a.EndsWith($sep + $b) -or $b.EndsWith($sep + $a)) { return $true }
+    $x = @($a.Split([string[]]@($sep), [System.StringSplitOptions]::None))
+    $y = @($b.Split([string[]]@($sep), [System.StringSplitOptions]::None))
+    if ($x.Count -gt 1 -and $y.Count -gt 1) {
+        return ((($x | Sort-Object) -join "`0") -eq (($y | Sort-Object) -join "`0"))
+    }
+    return $false
+}
+
+function Find-YabberDir([string]$Hint) {
+    $cands = New-Object System.Collections.Generic.List[string]
+    if ($Hint) { $cands.Add($Hint) }
+    $cmd = Get-Command 'Yabber.exe' -ErrorAction SilentlyContinue
+    if ($cmd) { $cands.Add((Split-Path -Parent $cmd.Source)) }
+    $roots = @($PackRoot, $ScriptDir, $env:YABBER_DIR, 'D:\Hermesworkplace\tools\Yabber',
+               'D:\game\TOOL', 'D:\Tools', 'D:\tool', 'C:\Tools', 'C:\tool',
+               (Join-Path $env:USERPROFILE 'Downloads'))
+    foreach ($root in $roots) {
+        if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+        foreach ($pattern in @('Yabber*', '*\Yabber*', 'Yabber*\Yabber*')) {
+            Get-ChildItem -Path (Join-Path $root $pattern) -Directory -ErrorAction SilentlyContinue |
+                ForEach-Object { $cands.Add($_.FullName) }
+        }
+    }
+    foreach ($c in $cands) {
+        if ($c -and (Test-Path -LiteralPath (Join-Path $c 'Yabber.exe')) -and
+            (Test-Path -LiteralPath (Join-Path $c 'Yabber.DCX.exe'))) { return $c }
+    }
+    throw "Yabber not found. Extract Yabber anywhere under this package's root folder, pass -Yabber <dir>, or set `"yabber_dir`" in the config."
+}
+
+function Get-DefaultGame {
+    if ($env:DSR_GAME_DIR -and (Test-Path -LiteralPath (Join-Path $env:DSR_GAME_DIR 'DarkSoulsRemastered.exe'))) {
+        return $env:DSR_GAME_DIR
+    }
+    $roots = New-Object System.Collections.Generic.List[string]
+    try {
+        $steam = (Get-ItemProperty 'HKCU:\Software\Valve\Steam' -ErrorAction Stop).SteamPath
+        if ($steam) {
+            $roots.Add($steam)
+            $vdf = Join-Path $steam 'steamapps\libraryfolders.vdf'
+            if (Test-Path -LiteralPath $vdf) {
+                foreach ($m in [regex]::Matches((Get-Content -LiteralPath $vdf -Raw), '"path"\s+"([^"]+)"')) {
+                    $roots.Add($m.Groups[1].Value.Replace('\\', '\'))
+                }
+            }
+        }
+    } catch { }
+    foreach ($r in @('D:\steam\steamapps\common', 'E:\steam\steamapps\common',
+                     'F:\steam\steamapps\common', 'C:\Program Files (x86)\Steam\steamapps\common')) {
+        $roots.Add($r)
+    }
+    foreach ($r in $roots) {
+        $cand = Join-Path $r 'DARK SOULS REMASTERED'
+        if (Test-Path -LiteralPath (Join-Path $cand 'DarkSoulsRemastered.exe')) { return $cand }
+    }
+    return 'D:\steam\steamapps\common\DARK SOULS REMASTERED'
+}
+
+function Invoke-Yabber([string]$Tool, [string]$Path) {
+    $out = & $Tool $Path 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Yabber failed on ${Path}:`n$($out -join "`n")"
+    }
+}
+
+function Get-Stem([string]$Path) {
+    $name = Split-Path -Leaf $Path
+    foreach ($suffix in @('.msgbnd.dcx', '.msgbnd')) {
+        if ($name.ToLowerInvariant().EndsWith($suffix)) { return $name.Substring(0, $name.Length - $suffix.Length) }
+    }
+    return [System.IO.Path]::GetFileNameWithoutExtension($name)
+}
+
+function Expand-Pack([string]$DcxPath, [string]$WorkDir) {
+    New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
+    $dcx = Join-Path $WorkDir (Split-Path -Leaf $DcxPath)
+    Copy-Item -LiteralPath $DcxPath -Destination $dcx -Force
+    Invoke-Yabber $script:YabberDcx $dcx
+    $msgbnd = $dcx.Substring(0, $dcx.Length - 4)
+    Invoke-Yabber $script:YabberExe $msgbnd
+    $bnd = Join-Path $WorkDir (([System.IO.Path]::GetFileNameWithoutExtension($msgbnd)) + '-msgbnd')
+    $fmgDir = Get-ChildItem -Path $bnd -Recurse -Directory |
+        Where-Object { Get-ChildItem -LiteralPath $_.FullName -Filter *.fmg -File -ErrorAction SilentlyContinue } |
+        Select-Object -First 1
+    if (-not $fmgDir) { throw "No FMG found after unpacking $DcxPath" }
+    return [pscustomobject]@{ Bnd = $bnd; FmgDir = $fmgDir.FullName; Msgbnd = $msgbnd }
+}
+
+function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
+    $xml = Join-Path $FmgDir ($Fmg + '.xml')
+    Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
+    $doc = New-Object System.Xml.XmlDocument
+    $doc.PreserveWhitespace = $true
+    $doc.Load($xml)
+    $map = @{}
+    foreach ($el in $doc.SelectNodes('/fmg/entries/text')) {
+        $map[$el.GetAttribute('id')] = $el.InnerText
+    }
+    return $map
+}
+
+function Save-XmlDoc([System.Xml.XmlDocument]$Doc, [string]$Path) {
+    $settings = New-Object System.Xml.XmlWriterSettings
+    $settings.NewLineHandling = [System.Xml.NewLineHandling]::None
+    $settings.Indent = $false
+    $settings.Encoding = New-Object System.Text.UTF8Encoding($true)
+    $writer = [System.Xml.XmlWriter]::Create($Path, $settings)
+    try { $Doc.Save($writer) } finally { $writer.Close() }
+}
+
+function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep) {
+    $xml = Join-Path $FmgDir ($Fmg + '.xml')
+    Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
+    $doc = New-Object System.Xml.XmlDocument
+    $doc.PreserveWhitespace = $true
+    $doc.Load($xml)
+    $changed = 0
+    foreach ($el in $doc.SelectNodes('/fmg/entries/text')) {
+        $id = $el.GetAttribute('id')
+        $a = if ($TopMap.ContainsKey($id)) { [string]$TopMap[$id] } else { '' }
+        $b = if ($SecMap.ContainsKey($id)) { [string]$SecMap[$id] } else { '' }
+        if ((Test-Null $a) -or (Test-Null $b)) { continue }
+        if ((Get-Norm $a) -eq (Get-Norm $b)) { continue }
+        if ($Mode -eq 'sec_only') {
+            if ($el.InnerText -cne $b) { $el.InnerText = $b; $changed++ }
+            continue
+        }
+        if (Test-AlreadyMerged $a $b $Sep) { continue }
+        $el.InnerText = ($a.TrimEnd([char[]]@("`n"))) + $Sep + ($b.TrimEnd([char[]]@("`n")))
+        $changed++
+    }
+    if ($changed -gt 0) {
+        Save-XmlDoc $doc $xml
+        Invoke-Yabber $script:YabberExe $xml
+    }
+    Remove-Item -LiteralPath $xml -Force
+    return $changed
+}
+
+function Get-ModeValue($Value) {
+    if ($Value -is [System.Management.Automation.PSCustomObject]) {
+        $m = $Value.PSObject.Properties['mode']
+        if ($m -and $m.Value) { return [string]$m.Value }
+        $e = $Value.PSObject.Properties['enabled']
+        if ($e) { return $(if ($e.Value) { 'append' } else { 'off' }) }
+    }
+    if ($Value -is [string]) { return $Value.Trim() }
+    return $(if ($Value) { 'append' } else { 'off' })
+}
+
+function Get-Category([string]$Fmg) {
+    switch ($Fmg) {
+        'Conversation_.fmg'        { return 'Dialogue' }
+        'Movie_subtitles_.fmg'     { return 'Cutscene Subtitles' }
+        'Dialogue_.fmg'            { return 'Dialogue Boxes' }
+        'Event_text_.fmg'          { return 'Event Text' }
+        'Menu_general_text_.fmg'   { return 'Menu Text' }
+        'Menu_others_.fmg'         { return 'Menu Text' }
+        'Ingame_menu_.fmg'         { return 'Menu Text' }
+        'Key_guide_.fmg'           { return 'Key Prompts' }
+        'Item_help_.fmg'           { return 'Help Text' }
+        'Single_line_help_.fmg'    { return 'Help Text' }
+        'System_message_win32_.fmg'        { return 'System Messages' }
+        'System_specific_tags_win32_.fmg'  { return 'System Messages' }
+        'Blood_writing_.fmg'       { return 'Blood Messages' }
+        default                    { return 'Other' }
+    }
+}
+
+function Get-Mode($Cfg, [string]$Pack, [string]$Fmg) {
+    $stem = Get-Stem $Pack
+    $files = $Cfg.files
+    if ($files) {
+        $packNode = $files.PSObject.Properties[$stem]
+        if ($packNode -and $packNode.Value.fmg) {
+            foreach ($p in $packNode.Value.fmg.PSObject.Properties) {
+                if ($Fmg -like $p.Name) { return (Get-ModeValue $p.Value) }
+            }
+        }
+    }
+    if ($Cfg.categories) {
+        $cat = Get-Category $Fmg
+        $node = $Cfg.categories.PSObject.Properties[$cat]
+        if ($node) { return (Get-ModeValue $node.Value) }
+    }
+    return 'off'
+}
+
+function Get-Separator($Cfg, [string]$Pack, [string]$Fmg) {
+    $stem = Get-Stem $Pack
+    $files = $Cfg.files
+    if ($files) {
+        $packNode = $files.PSObject.Properties[$stem]
+        if ($packNode -and $packNode.Value.fmg) {
+            foreach ($p in $packNode.Value.fmg.PSObject.Properties) {
+                if ($Fmg -like $p.Name -and $p.Value -is [System.Management.Automation.PSCustomObject]) {
+                    $sepNode = $p.Value.PSObject.Properties['separator']
+                    if ($sepNode) {
+                        return $(if ($sepNode.Value -eq '\n') { "`n" } else { [string]$sepNode.Value })
+                    }
+                }
+            }
+        }
+    }
+    if ($script:MultiLineFmgs -contains $Fmg) { return "`n" }
+    $sep = [string]$Cfg.separator
+    if ($sep -eq '\n' -or $sep -eq '') { return "`n" }
+    return $sep
+}
+
+# ---- main -------------------------------------------------------------------------------
+
+if (-not (Test-Path -LiteralPath $ConfigPath)) { throw "Config not found: $ConfigPath" }
+$cfg = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+if ($Primary) { $cfg.primary = $Primary }
+if ($Secondary) { $cfg.secondary = $Secondary }
+if ($Game) { $cfg.game = $Game }
+if (-not $cfg.game) { $cfg.game = Get-DefaultGame }
+if (-not $cfg.languages) { $cfg.languages = @($cfg.primary, $cfg.secondary) }
+
+$srcDir = if ($Source) { $Source } else { Join-Path $PackRoot 'source' }
+if (-not (Test-Path -LiteralPath (Join-Path $srcDir 'msg'))) {
+    throw "Text packs not found: $(Join-Path $srcDir 'msg') — the package ships them in source\, or pass -Source <game folder>."
+}
+$outDir = if ($Out) { $Out } else { $PackRoot }
+
+$yabberDir = if ($Yabber) { $Yabber } elseif ($cfg.yabber_dir) { $cfg.yabber_dir } else { Find-YabberDir '' }
+$script:YabberExe = Join-Path $yabberDir 'Yabber.exe'
+$script:YabberDcx = Join-Path $yabberDir 'Yabber.DCX.exe'
+
+$primary = [string]$cfg.primary
+$secondary = [string]$cfg.secondary
+$languages = @($cfg.languages)
+
+$packs = @($cfg.packs)
+if (-not $packs -or $packs.Count -eq 0) { $packs = @('menu.msgbnd.dcx') }
+$names = @($packs | Where-Object {
+    $pack = $_
+    $all = $true
+    foreach ($lang in $languages) {
+        if (-not (Test-Path -LiteralPath (Join-Path $srcDir "msg\$lang\$pack"))) { $all = $false }
+    }
+    $all
+})
+if ($Filter) { $names = @($names | Where-Object { (Get-Stem $_) -like $Filter }) }
+if ($names.Count -eq 0) { throw 'No text packs to process' }
+
+$started = Get-Date
+Write-Step "Source: $srcDir"
+Write-Step "Output: $outDir"
+Write-Step "Languages: $primary + $secondary -> $($languages -join ', ')"
+Write-Step ''
+
+$totalFmg = 0
+$totalEntries = 0
+
+foreach ($pack in $names) {
+    $stem = Get-Stem $pack
+    $workRoot = Join-Path $outDir "_work\$stem"
+    if (Test-Path -LiteralPath $workRoot) { Remove-Item -LiteralPath $workRoot -Recurse -Force }
+
+    $sec = Expand-Pack (Join-Path $srcDir "msg\$secondary\$pack") (Join-Path $workRoot $secondary)
+    $secTexts = @{}
+    foreach ($fmg in (Get-ChildItem -LiteralPath $sec.FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {
+        $secTexts[$fmg] = Get-FmgEntries $sec.FmgDir $fmg
+    }
+
+    Write-Step "[$pack]"
+    foreach ($lang in $languages) {
+        $tgt = if ($lang -eq $secondary) { $sec } else {
+            Expand-Pack (Join-Path $srcDir "msg\$lang\$pack") (Join-Path $workRoot $lang)
+        }
+
+        $topLang = $lang
+        if ($cfg.chinese_source) {
+            $node = $cfg.chinese_source.PSObject.Properties[$lang]
+            if ($node -and $node.Value) { $topLang = [string]$node.Value }
+        } elseif ($lang -eq $secondary) { $topLang = $primary }
+
+        $topDir = if ($topLang -eq $lang) { $tgt.FmgDir } else {
+            (Expand-Pack (Join-Path $srcDir "msg\$topLang\$pack") (Join-Path $workRoot ($topLang + '_src'))).FmgDir
+        }
+
+        $cache = @{}
+        $changedTotal = 0
+        foreach ($fmg in (Get-ChildItem -LiteralPath $tgt.FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {
+            $mode = Get-Mode $cfg $pack $fmg
+            if ($mode -eq 'off') { continue }
+            if (-not $secTexts.ContainsKey($fmg)) { Write-Step "  - skip $fmg (missing in $secondary)"; continue }
+            $key = "$topLang|$fmg"
+            if (-not $cache.ContainsKey($key)) { $cache[$key] = Get-FmgEntries $topDir $fmg }
+            $sep = Get-Separator $cfg $pack $fmg
+            $n = Update-Fmg $tgt.FmgDir $fmg $cache[$key] $secTexts[$fmg] $mode $sep
+            if ($n -gt 0) {
+                $changedTotal += $n
+                $totalFmg++
+                $totalEntries += $n
+                Write-Step "  + $lang/$fmg`: $n entries"
+            }
+        }
+
+        if ($changedTotal -eq 0) { Write-Step "  = $lang`: nothing to merge, pack skipped"; continue }
+        Invoke-Yabber $script:YabberExe $tgt.Bnd
+        Invoke-Yabber $script:YabberDcx $tgt.Msgbnd
+        $dst = Join-Path $outDir "msg\$lang\$pack"
+        $dstDir = Split-Path -Parent $dst
+        New-Item -ItemType Directory -Force -Path $dstDir | Out-Null
+        Copy-Item -LiteralPath ($tgt.Msgbnd + '.dcx') -Destination $dst -Force
+        Write-Step "  -> $dst"
+    }
+
+    if ($cfg.font -and $cfg.font.enabled) {
+        $fontSrc = Join-Path $cfg.game ("font\" + $cfg.font.source)
+        $fontDst = Join-Path $outDir ("font\" + $cfg.font.target)
+        New-Item -ItemType Directory -Force -Path $fontDst | Out-Null
+        foreach ($f in @($cfg.font.files)) {
+            Copy-Item -LiteralPath (Join-Path $fontSrc $f) -Destination (Join-Path $fontDst $f) -Force
+        }
+        Write-Step "  -> $fontDst"
+    }
+
+    if (-not $KeepWork) { Remove-Item -LiteralPath $workRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    Write-Step ''
+}
+
+$elapsed = (Get-Date) - $started
+Write-Step ("Done: {0} pack(s), {1} FMGs, {2} entries, in {3:N1}s" -f $names.Count, $totalFmg, $totalEntries, $elapsed.TotalSeconds)
+Write-Step "Mod files in: $outDir"

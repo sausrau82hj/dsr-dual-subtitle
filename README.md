@@ -43,21 +43,26 @@ read from the game folder as they are.
 
 ### Rebuild
 
-Python 3.9+ and [Yabber](https://github.com/JKAnderson/Yabber/releases) extracted anywhere under
-the package root.
+[Yabber](https://github.com/JKAnderson/Yabber/releases) extracted anywhere under the package
+root, and the installed game for the font.
 
 ```
-python tools\dualsub.py
+powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-Defaults: reads `source\`, writes `msg\`. The font is copied from the installed game.
+Windows PowerShell 5.1 — built into Windows 10 and 11 — is all it takes; no Python needed. The
+Python version is still there and produces byte-identical packs: `python tools\dualsub.py`.
 
-- `--source` / `--out` — other folders.
-- `--game` — game folder, auto-detected otherwise.
-- `--yabber` — Yabber outside the package root.
-- `--primary` / `--secondary` — swap the language shown on top and the one underneath.
-- `--filter "menu*"` — matching packs only.
-- `--keep-work` — keep the intermediate files.
+Defaults: reads `source\`, writes `msg\`. Both scripts take the same switches:
+
+- `-Source` / `-Out` — other folders.
+- `-Game` — game folder, auto-detected otherwise.
+- `-Yabber` — Yabber outside the package root.
+- `-Primary` / `-Secondary` — swap the language shown on top and the one underneath.
+- `-Filter "menu*"` — matching packs only.
+- `-KeepWork` — keep the intermediate files.
+
+(with `python`, the same switches are spelled `--source`, `--out`, … `--keep-work`.)
 
 `tools\dualsub.config.json`:
 
@@ -71,7 +76,7 @@ Defaults: reads `source\`, writes `msg\`. The font is copied from the installed 
 - `files` — per-pack and per-FMG overrides, highest priority.
 - `font` — the font pair copied out of the game into `font\<target>`.
 
-`python tools\verify.py` re-opens the built packs and checks that every merged entry equals
+`tools\verify.py` (Python, optional) re-opens the built packs and checks that every merged entry equals
 Chinese + separator + English, that the entry ids are unchanged, and that every other FMG is
 byte-identical to vanilla.
 
@@ -118,21 +123,26 @@ byte-identical to vanilla.
 
 ### 重新生成
 
-需要 Python 3.9+ 和 [Yabber](https://github.com/JKAnderson/Yabber/releases)，解压到包内任意
-位置即可。
+需要 [Yabber](https://github.com/JKAnderson/Yabber/releases)（解压到包内任意位置即可），字体
+需要已安装的游戏。
 
 ```
-python tools\dualsub.py
+powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-默认读包里的 `source\`、写回包里的 `msg\`。字体从已安装的游戏里复制。
+Windows 10 / 11 自带的 PowerShell 5.1 就够用，不需要装 Python。Python 版脚本也还在，产出与
+PowerShell 版逐字节相同：`python tools\dualsub.py`。
 
-- `--source` / `--out` — 换目录。
-- `--game` — 游戏目录，默认自动查找。
-- `--yabber` — Yabber 不在包内时。
-- `--primary` / `--secondary` — 换主（在上）副（在下）语言。
-- `--filter "menu*"` — 只重建匹配的包。
-- `--keep-work` — 保留中间文件。
+默认读包里的 `source\`、写回包里的 `msg\`。两个脚本参数一致：
+
+- `-Source` / `-Out` — 换目录。
+- `-Game` — 游戏目录，默认自动查找。
+- `-Yabber` — Yabber 不在包内时。
+- `-Primary` / `-Secondary` — 换主（在上）副（在下）语言。
+- `-Filter "menu*"` — 只重建匹配的包。
+- `-KeepWork` — 保留中间文件。
+
+（用 `python` 时这些参数写作 `--source`、`--out`……`--keep-work`。）
 
 `tools\dualsub.config.json`：
 
@@ -145,7 +155,7 @@ python tools\dualsub.py
 - `files` — 按包、按 FMG 覆盖，优先级最高。
 - `font` — 从游戏复制到 `font\<target>` 的字体对。
 
-`python tools\verify.py` 会重新拆开生成好的包，逐条核对“中文 + 分隔符 + 英文”、条目 id 是否
+`tools\verify.py`（Python，可选）会重新拆开生成好的包，逐条核对“中文 + 分隔符 + 英文”、条目 id 是否
 一致，以及其余 FMG 是否与原始文件逐字节相同。
 
 ### 已知限制
