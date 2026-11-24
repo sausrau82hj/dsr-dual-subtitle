@@ -38,13 +38,9 @@ DARK SOULS: REMASTERED
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-不带参数就是 less 版：读包里的 `source\`，成品写回包里的 `msg\`。all 版换一份配置：
+不带参数就是重建本包：`tools\dualsub.config.json` 与包里的 `msg`、`font` 对应（all 包重建出来就是 all），读包里的 `source\` 写回去。要换另一版就到仓库拿那份配置，用 `-Config <配置> -Out <目录>` 指过去。
 
-```
-powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Config tools\dualsub-all.config.json -Out _work\all
-```
-
-参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。自检用 `powershell -ExecutionPolicy Bypass -File tools\verify.ps1`（all 版加 `-Config tools\dualsub-all.config.json -PackDir _work\all`）。
+参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。自检用 `powershell -ExecutionPolicy Bypass -File tools\verify.ps1`。
 
 配置项：`languages`（写哪几个语言槽）、`chinese_source`（某个槽用哪份中文）、`separator`（单行文本的分隔符）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言）、`files`（按包、按 FMG 的例外）、`font`（从游戏复制哪套字体）。
 
@@ -96,13 +92,9 @@ Requires [Yabber](https://github.com/JKAnderson/Yabber/releases) extracted under
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-No arguments builds the less pack from the bundled `source\` into the package's `msg\`. For the all build, use the other config:
+No arguments rebuilds this package: `tools\dualsub.config.json` matches the `msg` and `font` it ships (the all package rebuilds as all), reading the bundled `source\` and writing back. To build the other variant, take its config from the repository and pass `-Config <config> -Out <folder>`.
 
-```
-powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Config tools\dualsub-all.config.json -Out _work\all
-```
-
-Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`. Check any build with `powershell -ExecutionPolicy Bypass -File tools\verify.ps1` (all build: add `-Config tools\dualsub-all.config.json -PackDir _work\all`).
+Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`. Check any build with `powershell -ExecutionPolicy Bypass -File tools\verify.ps1`.
 
 Config keys: `languages` (slots to write), `chinese_source` (which Chinese text a slot shows), `separator` (separator inside one line), `categories` (`true` merge · `"off"` untouched · `"sec_only"` secondary only), `files` (per-pack, per-FMG exceptions), `font` (which font pair to copy out of the game).
 
