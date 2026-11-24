@@ -15,12 +15,19 @@ because the English client's font has no CJK glyphs.
 
 ### Install
 
-- Copy `msg\` and `font\` into the `DARK SOULS REMASTERED` folder on a game unpacked with
-  UXM / Nuxe, overwriting. Launch the game afterwards.
+DARK SOULS: REMASTERED ships its files unpacked, so there is no unpacker step — the packs are
+read from the game folder as they are.
+
+- **Direct:** back up `msg\`, then copy `msg\` and `font\` from this package into the
+  `DARK SOULS REMASTERED` folder, overwriting (`robocopy msg "<game>\msg" /E`). Launch the game
+  offline afterwards.
+- **Mod Engine 2 / DSR Mod Engine:** put `msg\` and `font\` into the loader's `mod\` folder
+  (`ModEngine2\mod\msg\...`, `ModEngine2\mod\font\...`) and start the game with its launch script
+  instead of Steam.
 - Playing in Chinese only? Then `font\` is optional — `msg\SCHINESE\` (or `msg\TCHINESE\`) is
   enough on its own. The font folder exists because the English language slot loads
   `font\ENGLISH\`, whose atlas carries no Chinese glyphs.
-- The untouched packs are in `source\` if you want to roll back.
+- Uninstall: copy `source\msg\` back over the game folder, or verify the game files in Steam.
 
 ### What it changes
 
@@ -86,11 +93,16 @@ byte-identical to vanilla.
 
 ### 安装
 
-- 用 UXM / Nuxe 解包游戏后，把 `msg\` 和 `font\` 复制进 `DARK SOULS REMASTERED` 目录，覆盖同名
-  文件，然后启动游戏。
+黑暗之魂：重制版的光盘文件本身就是解包状态，不需要再解包，文件按原位读取。
+
+- **直接覆盖**：先备份游戏的 `msg\`，把本包的 `msg\` 和 `font\` 覆盖进 `DARK SOULS REMASTERED`
+  目录（`robocopy msg "<游戏目录>\msg" /E`），然后离线启动游戏。
+- **Mod Engine 2 / DSR Mod Engine**：把 `msg\` 和 `font\` 放进加载器的 `mod\` 目录
+  （`ModEngine2\mod\msg\...`、`ModEngine2\mod\font\...`），用它自带的启动脚本进游戏，不走
+  Steam 启动。
 - 只玩中文的话 `font\` 可以不装，只放 `msg\SCHINESE\`（或 `msg\TCHINESE\`）就够。带字体是因为
   英文语言槽会读 `font\ENGLISH\`，那套字体图集里没有中文。
-- 原始文件放在 `source\`，想还原时直接盖回去。
+- 卸载：把 `source\msg\` 复制回去覆盖，或者在 Steam 里校验文件完整性。
 
 ### 改动内容
 
