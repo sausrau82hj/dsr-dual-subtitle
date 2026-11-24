@@ -1,0 +1,32 @@
+{
+  "game": "",
+  "yabber_dir": "",
+  "primary": "SCHINESE",
+  "secondary": "ENGLISH",
+  "languages": ["ENGLISH", "SCHINESE", "TCHINESE"],
+  "chinese_source": {
+    "ENGLISH": "SCHINESE",
+    "SCHINESE": "SCHINESE",
+    "TCHINESE": "TCHINESE"
+  },
+  "separator": " / ",
+  "packs": ["menu.msgbnd.dcx"],
+  "categories": {
+    "Dialogue": true,
+    "Cutscene Subtitles": true,
+    "Dialogue Boxes": true,
+    "Event Text": true,
+    "Menu Text": true,
+    "Key Prompts": true,
+    "Help Text": true,
+    "System Messages": true,
+    "Blood Messages": true
+  },
+  "files": {},
+  "font": {
+    "enabled": true,
+    "source": "schinese",
+    "target": "ENGLISH",
+    "files": ["TalkFont24.ccm.dcx", "TalkFont24.tpf.dcx", "DSFont24.ccm.dcx", "DSFont24.tpf.dcx"]
+  }
+}

@@ -1,184 +1,129 @@
-# Dual Subtitle — *DARK SOULS: REMASTERED*
+# DualSubtitle — Dark Souls: Remastered Chinese–English dual-language text · 中英双语文本
 
-Chinese and English in one dialogue entry: 中文 on top, English underneath. Text only — no
-gameplay, balance or asset changes.
+DARK SOULS: REMASTERED
 
-The same text is written into every language slot (`ENGLISH`, `SCHINESE`, `TCHINESE`), so the
-pack works whether the game is set to English or Chinese. A Chinese dialogue font ships with it,
-because the English client's font has no CJK glyphs.
-
-**English** · [中文](#中文)
-
----
-
-## English
-
-### Install
-
-DARK SOULS: REMASTERED ships its files unpacked, so there is no unpacker step — the packs are
-read from the game folder as they are.
-
-- **Direct:** back up `msg\`, then copy `msg\` and `font\` from this package into the
-  `DARK SOULS REMASTERED` folder, overwriting (`robocopy msg "<game>\msg" /E`). Launch the game
-  offline afterwards.
-- **Mod Engine 2 / DSR Mod Engine:** put `msg\` and `font\` into the loader's `mod\` folder
-  (`ModEngine2\mod\msg\...`, `ModEngine2\mod\font\...`) and start the game with its launch script
-  instead of Steam.
-- Playing in Chinese only? Then `font\` is optional — `msg\SCHINESE\` (or `msg\TCHINESE\`) is
-  enough on its own. The font folder exists because the English language slot loads
-  `font\ENGLISH\`, whose atlas carries no Chinese glyphs.
-- Uninstall: copy `source\msg\` back over the game folder, or verify the game files in Steam.
-
-### What it changes
-
-| Path | Content |
-| --- | --- |
-| `msg/ENGLISH/menu.msgbnd.dcx` | `Conversation_.fmg` (NPC dialogue) + `Movie_subtitles_.fmg` (cutscene subtitles) |
-| `msg/SCHINESE/menu.msgbnd.dcx` | same, Simplified Chinese on top |
-| `msg/TCHINESE/menu.msgbnd.dcx` | same, Traditional Chinese on top |
-| `font/ENGLISH/TalkFont24.*` | Chinese dialogue font for the English language slot |
-
-3,285 dialogue entries and 35 subtitle entries per pack. The other 12 FMGs inside the pack
-(menus, items, system messages, key prompts …) and `item.msgbnd.dcx` are untouched.
-
-### Rebuild
-
-[Yabber](https://github.com/JKAnderson/Yabber/releases) extracted anywhere under the package
-root, and the installed game for the font.
-
-```
-powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
-```
-
-Windows PowerShell 5.1 — built into Windows 10 and 11 — is all it takes; no Python needed. The
-Python version is still there and produces byte-identical packs: `python tools\dualsub.py`.
-
-Defaults: reads `source\`, writes `msg\`. Both scripts take the same switches:
-
-- `-Source` / `-Out` — other folders.
-- `-Game` — game folder, auto-detected otherwise.
-- `-Yabber` — Yabber outside the package root.
-- `-Primary` / `-Secondary` — swap the language shown on top and the one underneath.
-- `-Filter "menu*"` — matching packs only.
-- `-KeepWork` — keep the intermediate files.
-
-(with `python`, the same switches are spelled `--source`, `--out`, … `--keep-work`.)
-
-`tools\dualsub.config.json`:
-
-- `primary` / `secondary` — language shown on top and the one appended, default `SCHINESE` /
-  `ENGLISH`.
-- `languages` — the packs actually written, default `ENGLISH`, `SCHINESE`, `TCHINESE`.
-- `chinese_source` — which Chinese text a slot shows; `ENGLISH` uses `SCHINESE`.
-- `separator` — separator inside one line, default `"\n"` (use `" / "` for one line).
-- `categories` — `true` merge · `"off"` leave as-is · `"sec_only"` secondary only. Only
-  `Dialogue` and `Cutscene Subtitles` are on by default.
-- `files` — per-pack and per-FMG overrides, highest priority.
-- `font` — the font pair copied out of the game into `font\<target>`.
-
-`tools\verify.py` (Python, optional) re-opens the built packs and checks that every merged entry equals
-Chinese + separator + English, that the entry ids are unchanged, and that every other FMG is
-byte-identical to vanilla.
-
-### Known limitations
-
-- Text only: another `msg` mod will overwrite this one, and vice versa.
-- Most entries fit two lines (Chinese + English). About 130 of them carry enough English text to
-  reach four lines, which can sit tight against the bottom of the dialogue box.
-- The English language slot renders with the Chinese font, so English dialogue in that slot is
-  drawn with the Chinese typeface's Latin glyphs.
-
-### Finer edits
-
-[WitchyBND](https://github.com/ividyon/WitchyBND/releases): unpack one pack, edit entries, repack.
+中文 · English
 
 ---
 
 ## 中文
 
+中文在上、英文在下，写进同一句对话里。只改文本，不动别的。
+
+两个版本：
+
+- **less** — NPC 对话（`Conversation_.fmg`）与过场字幕（`Movie_subtitles_.fmg`）。
+- **all** — 再加上事件提示、菜单、按键提示、帮助文本、系统提示、血书。
+
+三个语言槽（`ENGLISH`、`SCHINESE`、`TCHINESE`）写的是同一份文本，游戏语言设成英文或中文都能用。
+
 ### 安装
 
-黑暗之魂：重制版的光盘文件本身就是解包状态，不需要再解包，文件按原位读取。
+先关游戏，装完离线启动。重制版本身就是散文件，不用解包：
 
-- **直接覆盖**：先备份游戏的 `msg\`，把本包的 `msg\` 和 `font\` 覆盖进 `DARK SOULS REMASTERED`
-  目录（`robocopy msg "<游戏目录>\msg" /E`），然后离线启动游戏。
-- **Mod Engine 2 / DSR Mod Engine**：把 `msg\` 和 `font\` 放进加载器的 `mod\` 目录
-  （`ModEngine2\mod\msg\...`、`ModEngine2\mod\font\...`），用它自带的启动脚本进游戏，不走
-  Steam 启动。
-- 只玩中文的话 `font\` 可以不装，只放 `msg\SCHINESE\`（或 `msg\TCHINESE\`）就够。带字体是因为
-  英文语言槽会读 `font\ENGLISH\`，那套字体图集里没有中文。
-- 卸载：把 `source\msg\` 复制回去覆盖，或者在 Steam 里校验文件完整性。
+- **替换文件**：把 `msg`、`font` 覆盖进 `DARK SOULS REMASTERED` 目录。
+- **Mod Engine 2 / DSR Mod Engine**：把 `msg`、`font` 放进加载器的 `mod` 目录，用它自带的启动脚本进游戏。
 
-### 改动内容
+只玩中文可以不放 `font`，`msg\SCHINESE` 单独就够。`font\ENGLISH` 是给英文语言槽补中文字形。
 
-| 路径 | 内容 |
-| --- | --- |
-| `msg/ENGLISH/menu.msgbnd.dcx` | `Conversation_.fmg`（NPC 对话）+ `Movie_subtitles_.fmg`（过场动画字幕） |
-| `msg/SCHINESE/menu.msgbnd.dcx` | 同上，简体中文在上 |
-| `msg/TCHINESE/menu.msgbnd.dcx` | 同上，繁体中文在上 |
-| `font/ENGLISH/TalkFont24.*` | 给英文语言槽用的中文字体 |
+### 卸载
 
-每个包 3,285 条对话、35 条字幕。包内其余 12 个 FMG（菜单、道具、系统提示、按键提示等）以及
-`item.msgbnd.dcx` 都没有改动。
+`msg` 换回 `source\msg`；覆盖过 `font` 的，Steam 校验文件完整性即可还原。
 
 ### 重新生成
 
-需要 [Yabber](https://github.com/JKAnderson/Yabber/releases)（解压到包内任意位置即可），字体
-需要已安装的游戏。
+需要 [Yabber](https://github.com/JKAnderson/Yabber/releases)，解压到包根目录即可。Windows 自带 PowerShell 就够，不用装 Python：
 
 ```
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-Windows 10 / 11 自带的 PowerShell 5.1 就够用，不需要装 Python。Python 版脚本也还在，产出与
-PowerShell 版逐字节相同：`python tools\dualsub.py`。
+不带参数就是 less 版：读包里的 `source\`，成品写回包里的 `msg\`。all 版换一份配置：
 
-默认读包里的 `source\`、写回包里的 `msg\`。两个脚本参数一致：
+```
+powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Config tools\dualsub-all.config.json -Out _work\all
+```
 
-- `-Source` / `-Out` — 换目录。
-- `-Game` — 游戏目录，默认自动查找。
-- `-Yabber` — Yabber 不在包内时。
-- `-Primary` / `-Secondary` — 换主（在上）副（在下）语言。
-- `-Filter "menu*"` — 只重建匹配的包。
-- `-KeepWork` — 保留中间文件。
+参数只在需要时加：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu*"`、`-Config`、`-KeepWork`。Python 版 `tools\dualsub.py` 参数一一对应（`--source`…），产出逐字节相同。
 
-（用 `python` 时这些参数写作 `--source`、`--out`……`--keep-work`。）
-
-`tools\dualsub.config.json`：
-
-- `primary` / `secondary` — 在上面显示的语言与跟在后面的语言，默认 `SCHINESE` / `ENGLISH`。
-- `languages` — 实际写出的包，默认 `ENGLISH`、`SCHINESE`、`TCHINESE`。
-- `chinese_source` — 某个槽用哪份中文；`ENGLISH` 用 `SCHINESE`。
-- `separator` — 单行内的分隔符，默认 `"\n"`（想并成一行就写 `" / "`）。
-- `categories` — `true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言。默认只开
-  `Dialogue` 与 `Cutscene Subtitles`。
-- `files` — 按包、按 FMG 覆盖，优先级最高。
-- `font` — 从游戏复制到 `font\<target>` 的字体对。
-
-`tools\verify.py`（Python，可选）会重新拆开生成好的包，逐条核对“中文 + 分隔符 + 英文”、条目 id 是否
-一致，以及其余 FMG 是否与原始文件逐字节相同。
+配置项：`languages`（写哪几个语言槽）、`chinese_source`（某个槽用哪份中文）、`separator`（单行文本的分隔符）、`categories`（`true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言）、`files`（按包、按 FMG 的例外）、`font`（从游戏复制哪套字体）。
 
 ### 已知限制
 
-- 只改文本；别的 mod 也换 `msg` 时会互相覆盖。
-- 绝大多数条目是两行（中文一行、英文一行）。大约 130 条英文较长，会占到四行，可能贴到对话框
-  底边。
-- 英文语言槽用中文字体渲染，所以那一槽的英文对话是中文字体里的西文字形。
+- 只改文本；别的 mod 也换 `msg` 时，把它的文件放进 `source\` 再生成。
+- all 版的菜单、按键提示是单行双语，个别按钮会偏挤。
+- 英文较长的对话会占三四行，个别顶到对话框下沿。
 
 ### 更精细的修改
 
-[WitchyBND](https://github.com/ividyon/WitchyBND/releases)：单独解包一个包，改完重新打包。
+[WitchyBND](https://github.com/ividyon/WitchyBND/releases)：解包、修改、打包、替换。
+
+### 致谢
+
+[Yabber](https://github.com/JKAnderson/Yabber) 处理 DCX / BND3 / FMG；同系列：[DARK SOULS III 双语](https://github.com/sausrau82hj/darksoulsiii-dual-subtitle)。
 
 ---
 
-## Credits
+## English
 
-- Sibling project: [Dual Subtitle for DARK SOULS III](https://github.com/sausrau82hj/darksoulsiii-dual-subtitle).
-- [Yabber](https://github.com/JKAnderson/Yabber) for DCX / BND3 / FMG handling.
+Chinese on top, English underneath, inside the same dialogue entry. Text only.
 
-## License
+Two builds:
 
-[LICENSE](LICENSE) (MIT) covers the files written for this project — `tools\dualsub.py`, its
-config, `tools\verify.py` and this README. It does not cover the game text or the font, which are
-modified FromSoftware / Bandai Namco content; offline single-player use only. Not affiliated with
-FromSoftware or Bandai Namco.
+- **less** — NPC dialogue (`Conversation_.fmg`) and cutscene subtitles (`Movie_subtitles_.fmg`).
+- **all** — the above plus event text, menus, key prompts, help text, system messages, blood messages.
+
+All three slots (`ENGLISH`, `SCHINESE`, `TCHINESE`) hold the same text, so the pack works whether the game is set to English or Chinese.
+
+### Install
+
+Close the game first, start it offline afterwards. DSR ships unpacked, so there is no unpacker step:
+
+- **Replace the files**: copy `msg` and `font` over the `DARK SOULS REMASTERED` folder.
+- **Mod Engine 2 / DSR Mod Engine**: put `msg` and `font` into the loader's `mod` folder and start the game with its launch script.
+
+Playing in Chinese only? Then `font` is optional — `msg\SCHINESE` alone is enough. `font\ENGLISH` only fills in the missing Chinese glyphs for the English slot.
+
+### Uninstall
+
+Put `source\msg` back; if you replaced `font`, verify the game files in Steam.
+
+### Rebuild
+
+Requires [Yabber](https://github.com/JKAnderson/Yabber/releases) extracted under the package root. Windows PowerShell is enough — no Python needed:
+
+```
+powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
+```
+
+No arguments builds the less pack from the bundled `source\` into the package's `msg\`. For the all build, use the other config:
+
+```
+powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1 -Config tools\dualsub-all.config.json -Out _work\all
+```
+
+Extra arguments only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu*"`, `-Config`, `-KeepWork`. `tools\dualsub.py` takes the same options (`--source` …) and produces byte-identical packs.
+
+Config keys: `languages` (slots to write), `chinese_source` (which Chinese text a slot shows), `separator` (separator inside one line), `categories` (`true` merge · `"off"` untouched · `"sec_only"` secondary only), `files` (per-pack, per-FMG exceptions), `font` (which font pair to copy out of the game).
+
+### Known limitations
+
+- Text only. If another mod also replaces `msg`, put its files in `source\` and rebuild.
+- In the all build, menus and key prompts are bilingual on one line, so a few buttons get tight.
+- A long English line can take a dialogue entry to three or four lines, and a few sit against the bottom of the box.
+
+### Finer edits
+
+[WitchyBND](https://github.com/ividyon/WitchyBND/releases): unpack, edit, pack, replace.
+
+### Credits
+
+[Yabber](https://github.com/JKAnderson/Yabber) for the DCX / BND3 / FMG work. Sibling project: [Dual Subtitle for DARK SOULS III](https://github.com/sausrau82hj/darksoulsiii-dual-subtitle).
+
+---
+
+## License / 许可证
+
+MIT 只覆盖为这个项目写的脚本和 README（[LICENSE](LICENSE)）；`msg`、`source` 里的文本和 `font` 里的字体是修改过的 FromSoftware / Bandai Namco 内容，仅供离线单人使用。与原厂无关。
+
+The MIT license in [LICENSE](LICENSE) covers only the scripts and README written for this project. The text under `msg` and `source`, and the font under `font`, are modified FromSoftware / Bandai Namco content for offline single-player use. Not affiliated with FromSoftware or Bandai Namco.

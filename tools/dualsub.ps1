@@ -27,6 +27,7 @@ param(
     [string]$Primary,
     [string]$Secondary,
     [string]$Filter,
+    [string]$Config,
     [switch]$KeepWork
 )
 
@@ -34,7 +35,7 @@ $ErrorActionPreference = 'Stop'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PackRoot = if ((Split-Path -Leaf $ScriptDir) -ieq 'tools') { Split-Path -Parent $ScriptDir } else { $ScriptDir }
-$ConfigPath = Join-Path $ScriptDir 'dualsub.config.json'
+$ConfigPath = if ($Config) { (Resolve-Path -LiteralPath $Config).Path } else { Join-Path $ScriptDir 'dualsub.config.json' }
 
 $script:NullMarkers = @('', 'null', '%null%')
 $script:MultiLineFmgs = @('Conversation_.fmg', 'Movie_subtitles_.fmg', 'Event_text_.fmg')

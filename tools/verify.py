@@ -84,6 +84,11 @@ def main(argv=None) -> int:
                         else:
                             expected = a.rstrip("\n") + sep + b.rstrip("\n")
                         if bt[key] != expected:
+                            # Yabber drops whitespace-only text nodes when it repacks an FMG,
+                            # so a blank entry can come back as an empty string
+                            if expected.strip() == '' and bt[key].strip() == '':
+                                n += 1 if expected != original else 0
+                                continue
                             errors.append(f"{lang}/{fmg}: entry {key} mismatch\n"
                                           f"    got      {bt[key]!r}\n"
                                           f"    expected {expected!r}")
