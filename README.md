@@ -2,7 +2,7 @@
 
 DARK SOULS: REMASTERED
 
-中文 · [English](#Enlish)
+中文 · [English](#english)
 
 ---
 
@@ -54,7 +54,7 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 NPC dialogue (`Conversation_.fmg`) and cutscene subtitles (`Movie_subtitles_.fmg`) only, Chinese on top and English underneath. Menus, items and key prompts stay vanilla.
 
-All two slots (`ENGLISH`, `SCHINESE`) hold the same text, so the pack works whether the game is set to English or Chinese; the Traditional Chinese slot stays vanilla.
+Both slots (`ENGLISH`, `SCHINESE`) hold the same text, so the pack works whether the game is set to English or Chinese; the Traditional Chinese slot stays vanilla.
 
 ### Install
 
