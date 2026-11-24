@@ -168,6 +168,18 @@ function Get-MergedText([string]$a, [string]$b, [string]$sep, $Fit) {
     return [pscustomobject]@{ Text = ''; Inline = $false; Skip = $true }
 }
 
+function Get-ShortLabelLimit($Cfg, [string]$Fmg) {
+    $s = $Cfg.skip_short
+    $units = 8
+    if ($s) {
+        if ($null -ne $s.units) { $units = [int]$s.units }
+        elseif ($s.enabled -eq $false) { return 0 }
+        $except = @($s.except)
+        if ($except.Count -gt 0 -and ($except -contains $Fmg)) { return 0 }
+    }
+    return $units
+}
+
 function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
     $fmgPath = Join-Path $FmgDir $Fmg
     if ($script:TextCache.ContainsKey($fmgPath)) { return $script:TextCache[$fmgPath] }
@@ -325,12 +337,19 @@ try {
                 $top = Get-FmgEntries $van[$topLang] $fmg
                 $sep = Get-Separator $cfg $pack $fmg
                 $fit = Get-FitSettings $cfg $fmg
+                $shortLimit = Get-ShortLabelLimit $cfg $fmg
                 $n = 0
                 foreach ($key in $vt.Keys) {
                     $original = [string]$vt[$key]
                     $a = if ($top.ContainsKey($key)) { [string]$top[$key] } else { '' }
                     $b = if ($secTexts[$fmg].ContainsKey($key)) { [string]$secTexts[$fmg][$key] } else { '' }
                     if ((Test-Null $a) -or (Test-Null $b) -or ((Get-Norm $a) -eq (Get-Norm $b))) {
+                        $expected = $original
+                    } elseif ($a.Contains('<?') -or $b.Contains('<?')) {
+                        # tagged entries stay vanilla so engine glyphs are not duplicated
+                        $expected = $original
+                    } elseif ($shortLimit -gt 0 -and (Get-TextUnits ($original.Trim())) -le $shortLimit) {
+                        # short UI labels stay vanilla, their box is only as wide as the label
                         $expected = $original
                     } elseif ($mode -eq 'sec_only') {
                         $expected = $b

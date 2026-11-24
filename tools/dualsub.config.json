@@ -23,6 +23,10 @@
     "Blood Messages": "off"
   },
   "files": {},
+  "skip_short": {
+    "units": 8,
+    "except": ["Conversation_.fmg", "Movie_subtitles_.fmg"]
+  },
   "fit": {
     "enabled": true,
     "max_lines": 3,

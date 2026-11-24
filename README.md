@@ -8,12 +8,7 @@ DARK SOULS: REMASTERED
 
 ## 中文
 
-中文在上、英文在下，写进同一句对话里。只改文本，不动别的。
-
-两个版本：
-
-- **less** — NPC 对话（`Conversation_.fmg`）与过场字幕（`Movie_subtitles_.fmg`）。
-- **all** — 再加上事件提示、菜单、按键提示、帮助文本、系统提示、血书。
+只改 NPC 对话（`Conversation_.fmg`）与过场动画字幕（`Movie_subtitles_.fmg`），中文在上、英文在下。菜单、道具、按键提示等其余文本保持原版。
 
 三个语言槽（`ENGLISH`、`SCHINESE`、`TCHINESE`）写的是同一份文本，游戏语言设成英文或中文都能用。
 
@@ -47,7 +42,6 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ### 已知限制
 
 - 只改文本；别的 mod 也换 `msg` 时，把它的文件放进 `source\` 再生成。
-- all 版的菜单、按键提示是单行双语，个别按钮会偏挤。
 - 对话框只放得下 3 行。放不下的对话改成同行「中文 / English」，再放不下的（每语言 7 条）保留原文——中文槽是中文、英文槽是英文。行数与宽度在配置的 `fit` 里调。
 
 ### 更精细的修改
@@ -62,12 +56,7 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 ## English
 
-Chinese on top, English underneath, inside the same dialogue entry. Text only.
-
-Two builds:
-
-- **less** — NPC dialogue (`Conversation_.fmg`) and cutscene subtitles (`Movie_subtitles_.fmg`).
-- **all** — the above plus event text, menus, key prompts, help text, system messages, blood messages.
+NPC dialogue (`Conversation_.fmg`) and cutscene subtitles (`Movie_subtitles_.fmg`) only, Chinese on top and English underneath. Menus, items and key prompts stay vanilla.
 
 All three slots (`ENGLISH`, `SCHINESE`, `TCHINESE`) hold the same text, so the pack works whether the game is set to English or Chinese.
 
@@ -101,7 +90,6 @@ Config keys: `languages` (slots to write), `chinese_source` (which Chinese text 
 ### Known limitations
 
 - Text only. If another mod also replaces `msg`, put its files in `source\` and rebuild.
-- In the all build, menus and key prompts are bilingual on one line, so a few buttons get tight.
 - The dialogue box holds three lines. Anything longer is put on one line, `中文 / English`; the seven per language that still do not fit keep the vanilla text — Chinese in the Chinese slot, English in the English slot. `fit` in the config sets the line count and width.
 
 ### Finer edits

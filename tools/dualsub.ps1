@@ -211,6 +211,18 @@ function Get-MergedText([string]$a, [string]$b, [string]$sep, $Fit) {
     return [pscustomobject]@{ Text = ''; Inline = $false; Skip = $true }
 }
 
+function Get-ShortLabelLimit($Cfg, [string]$Fmg) {
+    $s = $Cfg.skip_short
+    $units = 8
+    if ($s) {
+        if ($null -ne $s.units) { $units = [int]$s.units }
+        elseif ($s.enabled -eq $false) { return 0 }
+        $except = @($s.except)
+        if ($except.Count -gt 0 -and ($except -contains $Fmg)) { return 0 }
+    }
+    return $units
+}
+
 function Get-FmgEntries([string]$FmgDir, [string]$Fmg) {
     $xml = Join-Path $FmgDir ($Fmg + '.xml')
     Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
@@ -233,7 +245,7 @@ function Save-XmlDoc([System.Xml.XmlDocument]$Doc, [string]$Path) {
     try { $Doc.Save($writer) } finally { $writer.Close() }
 }
 
-function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep, $Fit) {
+function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mode, [string]$Sep, $Fit, [int]$ShortLimit) {
     $xml = Join-Path $FmgDir ($Fmg + '.xml')
     Invoke-Yabber $script:YabberExe (Join-Path $FmgDir $Fmg)
     $doc = New-Object System.Xml.XmlDocument
@@ -253,6 +265,14 @@ function Update-Fmg([string]$FmgDir, [string]$Fmg, $TopMap, $SecMap, [string]$Mo
             continue
         }
         if (Test-AlreadyMerged $a $b $Sep) { continue }
+        # Entries carrying engine tags (<?key?>, <?joinName?>) render a glyph or a value in
+        # place of the tag: merging duplicates it, which shows up as two button icons.
+        if ($a.Contains('<?') -or $b.Contains('<?')) { $skipped++; continue }
+        # Short labels ("交谈", "Talk", "是") sit in a box only as wide as the label itself.
+        if ($ShortLimit -gt 0 -and (Get-TextUnits ((ConvertTo-Lf $el.InnerText).Trim())) -le $ShortLimit) {
+            $skipped++
+            continue
+        }
         $merged = Get-MergedText $a $b $Sep $Fit
         if ($merged.Skip) { $skipped++; continue }
         $el.InnerText = $merged.Text
@@ -423,7 +443,8 @@ foreach ($pack in $names) {
             if (-not $cache.ContainsKey($key)) { $cache[$key] = Get-FmgEntries $topDir $fmg }
             $sep = Get-Separator $cfg $pack $fmg
             $fit = Get-FitSettings $cfg $fmg
-            $res = Update-Fmg $tgt.FmgDir $fmg $cache[$key] $secTexts[$fmg] $mode $sep $fit
+            $shortLimit = Get-ShortLabelLimit $cfg $fmg
+            $res = Update-Fmg $tgt.FmgDir $fmg $cache[$key] $secTexts[$fmg] $mode $sep $fit $shortLimit
             $n = $res.Changed
             if ($res.Skipped -gt 0) { $totalSkipped += $res.Skipped }
             if ($res.Inline -gt 0) { $totalInline += $res.Inline }
