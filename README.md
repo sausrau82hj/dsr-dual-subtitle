@@ -1,6 +1,6 @@
 # Dual Subtitle — *DARK SOULS: REMASTERED*
 
-Chinese and English in the same entry, the game's own language on top. Dialogue, cutscene subtitles and the area titles.
+Chinese and English in the same entry, the game's own language on top: dialogue, subtitles, event text, menus, key prompts, help, system messages, blood messages, items and the area titles.
 
 **English** · [中文](#中文)
 
@@ -49,6 +49,7 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 ### Notes
 
 - The area title is drawn from `menu\<LANG>\menu_local.tpf.dcx` (two DDS atlases inside it), not from `msg`, so it ships as art. The build script writes `msg` and `font` only.
+- One-line widgets take ` / ` between the languages, paragraphs a newline. Rows sized for one short label — key prompts, yes/no buttons, item names in a list — run wide or spill.
 - 7 dialogue entries still run past the bottom of the box.
 - Another mod that also replaces `msg` or `menu` cannot be combined with this one.
 
@@ -56,7 +57,7 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 
 ## 中文
 
-同一段文本里中英对照，游戏语言是哪种，哪种就在上面。覆盖对话、过场动画字幕和地名标题。
+同一段文本里中英对照，游戏语言是哪种，哪种就在上面：对话、字幕、事件提示、菜单、按键提示、帮助、系统消息、血字、道具和地名标题全都覆盖。
 
 ### 安装
 
@@ -99,6 +100,7 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ### 注意
 
 - 屏幕中央的地名是贴图，在 `menu\<LANG>\menu_local.tpf.dcx` 里（两张 DDS 图），不在 `msg` 里，所以以图片形式附带。生成脚本只写 `msg` 和 `font`。
+- 单行控件用 ` / ` 连接，段落换行。按键提示、是/否按钮、列表里的道具名这些只有一格宽的框会变宽或溢出。
 - 还有 7 条对话会顶到对话框下沿。
 - 别的 mod 也换 `msg` 或 `menu` 时无法共存。
 

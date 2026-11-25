@@ -6,16 +6,16 @@
   "categories": {
     "Dialogue": true,
     "Cutscene Subtitles": true,
-    "Dialogue Boxes": "off",
-    "Event Text": "off",
-    "Menu Text": "off",
-    "Key Prompts": "off",
-    "Help Text": "off",
-    "System Messages": "off",
-    "Blood Messages": "off",
-    "Place Names": "off",
-    "Item Names": "off",
-    "Item Descriptions": "off"
+    "Dialogue Boxes": true,
+    "Event Text": true,
+    "Menu Text": true,
+    "Key Prompts": true,
+    "Help Text": true,
+    "System Messages": true,
+    "Blood Messages": true,
+    "Place Names": true,
+    "Item Names": true,
+    "Item Descriptions": true
   },
   "files": {}
 }
