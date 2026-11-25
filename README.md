@@ -49,7 +49,8 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 ### Notes
 
 - The area title is drawn from `menu\<LANG>\menu_local.tpf.dcx` (two DDS atlases inside it), not from `msg`, so it ships as art. The build script writes `msg` and `font` only.
-- One-line widgets take ` / ` between the languages, paragraphs a newline. Rows sized for one short label — key prompts, yes/no buttons, item names in a list — run wide or spill.
+- One-line widgets take ` / ` between the languages, paragraphs a newline; a widget that already wraps keeps its own line breaks. Rows sized for one short label — key prompts, yes/no buttons, item names in a list — run wide or spill.
+- The item detail panel takes about 18 lines: long descriptions keep the game's own language in full and cut the other one where the panel ends, with `...`.
 - 7 dialogue entries still run past the bottom of the box.
 - Another mod that also replaces `msg` or `menu` cannot be combined with this one.
 
@@ -100,7 +101,8 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ### 注意
 
 - 屏幕中央的地名是贴图，在 `menu\<LANG>\menu_local.tpf.dcx` 里（两张 DDS 图），不在 `msg` 里，所以以图片形式附带。生成脚本只写 `msg` 和 `font`。
-- 单行控件用 ` / ` 连接，段落换行。按键提示、是/否按钮、列表里的道具名这些只有一格宽的框会变宽或溢出。
+- 单行控件用 ` / ` 连接，段落换行；原文本来带换行的保留自己的换行。按键提示、是/否按钮、列表里的道具名这些只有一格宽的框会变宽或溢出。
+- 道具详情框大约放 18 行：长说明保留游戏语言全文，另一种语言在框底截断并加 `...`。
 - 还有 7 条对话会顶到对话框下沿。
 - 别的 mod 也换 `msg` 或 `menu` 时无法共存。
 

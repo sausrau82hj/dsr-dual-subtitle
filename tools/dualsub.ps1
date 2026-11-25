@@ -71,12 +71,11 @@ $DefaultCategories = [ordered]@{
     'Item Descriptions'  = 'off'
 }
 
-# Paragraph widgets keep a newline between the languages; one-line widgets take the inline separator.
-$MultilineFmgs = @('Conversation_*', 'Movie_subtitles_*', 'Dialogue_*', 'Event_text_*',
-                   '*_description_*', '*_long_desc_*')
+# Paragraph widgets keep a newline between the languages; one-line widgets take the inline
+# separator; everything else follows the entry itself (a newline only where the source has one).
+$MultilineFmgs = @('Conversation_*', 'Movie_subtitles_*', 'Dialogue_*', '*_long_desc_')
 $OneLineFmgs = @('*_name_*', 'Place_name_*', 'NPC_name_*', 'Key_guide_*', 'Single_line_help_*',
-                 'Item_help_*', 'System_message_*', 'System_specific_tags_*', 'Menu_general_text_*',
-                 'Menu_others_*', 'Ingame_menu_*', 'Text_display_*', 'Blood_writing_*')
+                 'Item_help_*', '*_description_*', 'System_specific_tags_*', 'Text_display_tag_list_*')
 
 function Write-Log { param([string]$Message) Write-Host $Message }
 
@@ -366,13 +365,35 @@ function Join-Flat {
     return $sb.ToString()
 }
 
-# The NPC dialogue box holds three lines, the cutscene subtitle strip two. Only these two fit
-# their box; every other widget is merged as-is.
+# The NPC dialogue box holds three lines, the cutscene subtitle strip two, the item detail panel
+# about seventeen. Only these fit their box; every other widget is merged as-is.
 function Get-FitSpec {
     param([string]$Fmg)
-    if ($Fmg -eq 'Conversation_.fmg') { return @{ Max = 3; Width = 60 } }
-    if ($Fmg -eq 'Movie_subtitles_.fmg') { return @{ Max = 2; Width = 62 } }
+    if ($Fmg -eq 'Conversation_.fmg') { return @{ Max = 3; Width = 60; Preview = $false } }
+    if ($Fmg -eq 'Movie_subtitles_.fmg') { return @{ Max = 2; Width = 62; Preview = $false } }
+    if ($Fmg -like '*_long_desc_*') { return @{ Max = 18; Width = 60; Preview = $true } }
     return $null
+}
+
+function Get-PreviewText {
+    param([string]$Text, [int]$Width, [int]$MaxLines)
+    $out = New-Object System.Collections.Generic.List[string]
+    $used = 0
+    foreach ($line in ($Text -split "`n")) {
+        $trim = $line.TrimEnd()
+        if ($trim.Trim() -eq '') {
+            if ($out.Count -gt 0 -and $out[$out.Count - 1] -ne '') { $out.Add(''); $used++ }
+            continue
+        }
+        $need = [Math]::Max(1, [int][Math]::Ceiling((Get-TextUnits $trim) / $Width))
+        if ($used + $need -gt $MaxLines) {
+            if ($out.Count -gt 0) { $out[$out.Count - 1] = $out[$out.Count - 1].TrimEnd() + '...' }
+            break
+        }
+        $out.Add($trim)
+        $used += $need
+    }
+    return ($out -join "`n")
 }
 
 function Get-MergedText {
@@ -380,10 +401,20 @@ function Get-MergedText {
     if (-not $Fit) { return $null }
     $stacked = $Top + "`n" + $Bottom
     if ((Get-RenderedLines $stacked $Fit.Width) -le $Fit.Max) { return $stacked }
-    $flat = (($(Join-Flat $Top) + $Inline + $(Join-Flat $Bottom)) -replace '\s{2,}', ' ').Trim()
-    if ((Get-RenderedLines $flat $Fit.Width) -le $Fit.Max) { return $flat }
-    if ((Get-RenderedLines $flat $Fit.Width) -le (Get-RenderedLines $stacked $Fit.Width)) { return $flat }
-    return $stacked
+    if (-not $Fit.Preview) {
+        $flat = (($(Join-Flat $Top) + $Inline + $(Join-Flat $Bottom)) -replace '\s{2,}', ' ').Trim()
+        if ((Get-RenderedLines $flat $Fit.Width) -le $Fit.Max) { return $flat }
+        if ((Get-RenderedLines $flat $Fit.Width) -le (Get-RenderedLines $stacked $Fit.Width)) { return $flat }
+        return $stacked
+    }
+    # Long descriptions: the primary language in full, the secondary cut where the panel ends,
+    # keeping its own line breaks and a trailing ellipsis.
+    $topLines = Get-RenderedLines $Top $Fit.Width
+    $budget = $Fit.Max - $topLines
+    if ($budget -lt 2) { $budget = 2 }
+    $preview = Get-PreviewText $Bottom $Fit.Width $budget
+    if (-not $preview) { return $Top }
+    return ($Top + "`n" + $preview)
 }
 
 function Test-AlreadyMerged {
@@ -413,7 +444,7 @@ function Write-Fmg {
 }
 
 function Update-Fmg {
-    param($Yabber, [string]$FmgDir, [string]$Fmg, $TopMap, $BottomMap, [string]$Mode, [string]$Sep, [string]$Inline)
+    param($Yabber, [string]$FmgDir, [string]$Fmg, $TopMap, $BottomMap, [string]$Mode, $Sep, [string]$Inline)
     $path = Join-Path $FmgDir $Fmg
     $xml = $path + '.xml'
     $doc = New-Object System.Xml.XmlDocument
