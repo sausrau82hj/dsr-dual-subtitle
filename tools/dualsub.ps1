@@ -19,8 +19,6 @@ param(
     [Alias('Output')][string]$Out,
     [string]$Config,
     [string]$Yabber,
-    [string]$Primary,
-    [string]$Secondary,
     [string]$Filter,
     [string]$Game,
     [switch]$KeepWork
@@ -525,11 +523,6 @@ foreach ($k in @($fromFile.Keys)) {
         $cfg[$k] = $fromFile[$k]
     }
 }
-if ($Primary) { $cfg['primary'] = $Primary }
-if ($Secondary) { $cfg['secondary'] = $Secondary }
-$primaryLang = if ($cfg['primary']) { [string]$cfg['primary'] } else { 'SCHINESE' }
-$secondaryLang = if ($cfg['secondary']) { [string]$cfg['secondary'] } else { 'ENGLISH' }
-
 $srcDir = if ($Source) { $Source } elseif (Test-Path -LiteralPath (Join-Path $PackRoot 'source') -PathType Container) { Join-Path $PackRoot 'source' } else { $null }
 if (-not $srcDir) { Fail 'No source folder: the package holds source\, or pass -Source <game folder>.' }
 if (-not (Test-Path -LiteralPath (Join-Path $srcDir 'msg') -PathType Container)) { Fail "Text packs not found: $(Join-Path $srcDir 'msg')" }
@@ -540,15 +533,17 @@ $yabberDir = if ($Yabber) { $Yabber } elseif ($cfg['yabber_dir']) { [string]$cfg
 $y = @{ Exe = (Join-Path $yabberDir 'Yabber.exe'); Dcx = (Join-Path $yabberDir 'Yabber.DCX.exe'); Dir = $yabberDir }
 if (-not (Test-Path -LiteralPath $y.Exe) -or -not (Test-Path -LiteralPath $y.Dcx)) { Fail "Yabber not found in: $yabberDir`n$YabberHelp" }
 
-$langs = @($secondaryLang, $primaryLang)
-$packs = Get-PackNames $srcDir $primaryLang $secondaryLang
+# Both slots always ship: the Chinese slot shows Chinese over English, the English slot the
+# reverse, so the game language alone decides which one is read.
+$langs = @('ENGLISH', 'SCHINESE')
+$packs = Get-PackNames $srcDir 'SCHINESE' 'ENGLISH'
 if ($Filter) { $packs = @($packs | Where-Object { (Get-Stem $_) -like $Filter }) }
 if (-not $packs -or $packs.Count -eq 0) { Fail 'No text packs to process' }
 
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 Write-Log "Source: $srcDir"
 Write-Log "Output: $outDir"
-Write-Log "Text: $primaryLang + $secondaryLang, slots $($langs -join ', '), $($packs.Count) packs"
+Write-Log "Slots: $($langs -join ', '), $($packs.Count) packs"
 Write-Log ''
 
 $totalFmg = 0
@@ -577,7 +572,7 @@ foreach ($pack in $packs) {
     $packEntries = 0
     foreach ($lang in $langs) {
         if (-not $dirs.ContainsKey($lang)) { continue }
-        $other = if ($lang -eq $primaryLang) { $secondaryLang } else { $primaryLang }
+        $other = if ($lang -eq 'SCHINESE') { 'ENGLISH' } else { 'SCHINESE' }
         if (-not $dirs.ContainsKey($other)) { continue }
         $changed = 0
         foreach ($fmg in (Get-ChildItem -LiteralPath $dirs[$lang].FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {

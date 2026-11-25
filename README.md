@@ -1,6 +1,6 @@
 # Dual Subtitle — *DARK SOULS: REMASTERED*
 
-Chinese and English in the same entry, the game's own language on top: dialogue, subtitles, event text, menus, key prompts, help, system messages, blood messages, items and the area titles.
+Chinese and English in the same entry, the game's own language on top (both language slots ship, so the game setting alone picks the order): dialogue, subtitles, event text, menus, key prompts, help, system messages, blood messages, items and the area titles.
 
 **English** · [中文](#中文)
 
@@ -20,11 +20,10 @@ Windows PowerShell (built in) and [Yabber](https://github.com/JKAnderson/Yabber/
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-Defaults: reads `source\`, writes `msg\`. Options only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Primary` / `-Secondary`, `-Filter "menu"`, `-KeepWork`.
+Defaults: reads `source\`, writes `msg\`. Options only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu"`, `-KeepWork`.
 
 `tools\dualsub.config.json`:
 
-- `primary` / `secondary` — display language and the one appended to it, default `SCHINESE` / `ENGLISH`.
 - `separator` — separator inside one line, default `" / "`.
 - `categories` — `true` merge · `"off"` leave as-is · `"sec_only"` secondary only.
 - `files` — per-pack and per-FMG overrides, highest priority:
@@ -59,7 +58,7 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 
 ## 中文
 
-同一段文本里中英对照，游戏语言是哪种，哪种就在上面：对话、字幕、事件提示、菜单、按键提示、帮助、系统消息、血字、道具和地名标题全都覆盖。
+同一段文本里中英对照，游戏语言是哪种，哪种就在上面（两个语言槽都写，切游戏语言即可）：对话、字幕、事件提示、菜单、按键提示、帮助、系统消息、血字、道具和地名标题全都覆盖。
 
 ### 安装
 
@@ -73,11 +72,10 @@ Windows 自带的 PowerShell，加上 [Yabber](https://github.com/JKAnderson/Yab
 powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 ```
 
-默认读包里的 `source\`、写回包里的 `msg\`。要换路径或只重建一部分时才加参数：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Primary` / `-Secondary`、`-Filter "menu"`、`-KeepWork`。
+默认读包里的 `source\`、写回包里的 `msg\`。要换路径或只重建一部分时才加参数：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu"`、`-KeepWork`。
 
 `tools\dualsub.config.json`：
 
-- `primary` / `secondary` — 主语言与跟在后面的副语言，默认 `SCHINESE` / `ENGLISH`。
 - `separator` — 单行内的分隔符，默认 `" / "`。
 - `categories` — `true` 合并 · `"off"` 原样 · `"sec_only"` 只留副语言。
 - `files` — 按包、按 FMG 覆盖，优先级最高：
