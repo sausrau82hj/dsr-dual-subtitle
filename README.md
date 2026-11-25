@@ -52,6 +52,7 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 - A one-line label is merged inline and cut where the game's own string ends, so nothing spills into the next row; a label only a couple of characters wide keeps one language.
 - Long descriptions keep the game's language in full and then as many of the other language's lines as the panel takes (about 18); the rest is not written.
 - 7 dialogue entries still run past the bottom of the box.
+- `Place Names` in the config only renames the bonfire warp list; the big title in the middle of the screen is the atlas under `menu\`, not text.
 - Another mod that also replaces `msg` or `menu` cannot be combined with this one.
 
 ---
@@ -104,6 +105,7 @@ python tools\dualsub.py
 - 单行标签用 ` / ` 合并，超出原版长度就在那里截断，不再溢出到下一行；只有两三个字宽的标签只保留一种语言。
 - 长说明保留游戏语言全文，然后按详情框剩余行数（约 18 行总计）继续写另一种语言，写不下的部分不写。
 - 还有 7 条对话会顶到对话框下沿。
+- 配置里的 `Place Names` 只改篝火传送列表里的地名；屏幕中央的大字是 `menu\` 下的贴图，不是文本。
 - 别的 mod 也换 `msg` 或 `menu` 时无法共存。
 
 ---

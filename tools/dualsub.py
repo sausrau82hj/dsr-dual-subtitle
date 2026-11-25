@@ -237,7 +237,7 @@ def fit_spec(fmg: str):
     if fmg == "Movie_subtitles_.fmg":
         return {"max": 2, "width": 62, "preview": False}
     if wild(fmg, ("*_long_desc_*",)):
-        return {"max": 18, "width": 60, "preview": True}
+        return {"max": 20, "width": 60, "preview": True}
     return None
 
 
@@ -293,11 +293,19 @@ def inline_text(top: str, bottom: str, inline: str) -> str:
     if widest <= 6:
         return top
     merged = top + inline + bottom
-    budget = widest + 10
+    # fill the field: a one-line row usually takes twice the game's own string, so only text
+    # that would clearly run past the row gets cut
+    budget = max(widest * 2, widest + 10)
     # a couple of characters over the edge is not worth cutting a word for
     if units(merged) <= budget + 2:
         return merged
-    return truncated(merged, budget)
+    cut = truncated(merged, budget)
+    # nothing useful of the second language survived -> keep the game's own line only
+    if inline in cut:
+        head, _, tail = cut.rpartition(inline)
+        if units(tail.strip()) < 3:
+            return head.rstrip()
+    return cut
 
 
 def already_merged(t1: str, t2: str, sep: str) -> bool:
