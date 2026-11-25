@@ -12,7 +12,7 @@
     "Key Prompts": true,
     "Help Text": true,
     "System Messages": true,
-    "Blood Messages": true,
+    "Blood Messages": "off",
     "Place Names": true,
     "Item Names": true,
     "Item Descriptions": true

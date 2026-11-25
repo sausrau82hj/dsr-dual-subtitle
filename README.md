@@ -1,6 +1,6 @@
 # Dual Subtitle — *DARK SOULS: REMASTERED*
 
-Chinese and English in the same entry, the game's own language on top: dialogue, subtitles, event text, menus, key prompts, help, system messages, blood messages, items and the area titles.
+Chinese and English in the same entry, the game's own language on top: dialogue, subtitles, event text, menus, key prompts, help, system messages, items and the area titles.
 
 **English** · [中文](#中文)
 
@@ -59,7 +59,7 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 
 ## 中文
 
-同一段文本里中英对照，游戏语言是哪种，哪种就在上面：对话、字幕、事件提示、菜单、按键提示、帮助、系统消息、血字、道具和地名标题全都覆盖。
+同一段文本里中英对照，游戏语言是哪种，哪种就在上面：对话、字幕、事件提示、菜单、按键提示、帮助、系统消息、道具和地名标题全都覆盖。
 
 ### 安装
 
