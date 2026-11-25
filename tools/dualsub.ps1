@@ -465,7 +465,7 @@ function Update-Fmg {
         $top = if ($TopMap.ContainsKey($id)) { [string]$TopMap[$id] } else { '' }
         $bottom = if ($BottomMap.ContainsKey($id)) { [string]$BottomMap[$id] } else { '' }
         if (Test-IsNull $bottom) { continue }
-        if ($Mode -eq 'sec_only') {
+        if ($Mode -eq 'en_only') {
             if ($top -ceq $bottom) { continue }
             $el.InnerText = $bottom
             $changed++
@@ -533,8 +533,8 @@ $yabberDir = if ($Yabber) { $Yabber } elseif ($cfg['yabber_dir']) { [string]$cfg
 $y = @{ Exe = (Join-Path $yabberDir 'Yabber.exe'); Dcx = (Join-Path $yabberDir 'Yabber.DCX.exe'); Dir = $yabberDir }
 if (-not (Test-Path -LiteralPath $y.Exe) -or -not (Test-Path -LiteralPath $y.Dcx)) { Fail "Yabber not found in: $yabberDir`n$YabberHelp" }
 
-# Both slots always ship: the Chinese slot shows Chinese over English, the English slot the
-# reverse, so the game language alone decides which one is read.
+# One build, two slots: Chinese on top and English underneath, identical in both, so the game
+# language does not change what the text says.
 $langs = @('ENGLISH', 'SCHINESE')
 $packs = Get-PackNames $srcDir 'SCHINESE' 'ENGLISH'
 if ($Filter) { $packs = @($packs | Where-Object { (Get-Stem $_) -like $Filter }) }
@@ -572,15 +572,13 @@ foreach ($pack in $packs) {
     $packEntries = 0
     foreach ($lang in $langs) {
         if (-not $dirs.ContainsKey($lang)) { continue }
-        $other = if ($lang -eq 'SCHINESE') { 'ENGLISH' } else { 'SCHINESE' }
-        if (-not $dirs.ContainsKey($other)) { continue }
         $changed = 0
         foreach ($fmg in (Get-ChildItem -LiteralPath $dirs[$lang].FmgDir -Filter *.fmg -File | Sort-Object Name | ForEach-Object Name)) {
-            if (-not $texts[$other].ContainsKey($fmg)) { continue }
+            if (-not $texts['SCHINESE'].ContainsKey($fmg) -or -not $texts['ENGLISH'].ContainsKey($fmg)) { continue }
             $mode = Get-Mode $cfg $pack $fmg
             if ($mode -eq 'off') { continue }
             $sep = Get-SeparatorFor $cfg $pack $fmg
-            $n = Update-Fmg $y $dirs[$lang].FmgDir $fmg $texts[$lang][$fmg] $texts[$other][$fmg] $mode $sep (Get-InlineSep $cfg)
+            $n = Update-Fmg $y $dirs[$lang].FmgDir $fmg $texts['SCHINESE'][$fmg] $texts['ENGLISH'][$fmg] $mode $sep (Get-InlineSep $cfg)
             if ($n -gt 0) {
                 $changed += $n
                 $totalFmg++
