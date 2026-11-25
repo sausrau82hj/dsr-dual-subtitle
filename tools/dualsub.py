@@ -328,13 +328,6 @@ def value_mode(value):
 
 
 def get_mode(cfg: dict, pack: str, fmg: str) -> str:
-    entry = (cfg.get("files") or {}).get(stem(pack)) or {}
-    if entry:
-        if not entry.get("enabled", True):
-            return "off"
-        for pattern, value in (entry.get("fmg") or {}).items():
-            if wild(fmg, (pattern,)):
-                return value_mode(value)
     value = (cfg.get("categories") or {}).get(category(fmg))
     if value is not None:
         return value_mode(value)
@@ -351,11 +344,6 @@ def inline_sep(cfg: dict) -> str:
 
 
 def separator_for(cfg: dict, pack: str, fmg: str):
-    entry = (cfg.get("files") or {}).get(stem(pack)) or {}
-    for pattern, value in (entry.get("fmg") or {}).items():
-        if wild(fmg, (pattern,)) and isinstance(value, dict) and "separator" in value:
-            sep = value["separator"]
-            return "\n" if sep == "\\n" else str(sep)
     if wild(fmg, MULTILINE):
         return "\n"
     if wild(fmg, ONELINE):
@@ -567,6 +555,9 @@ def main() -> int:
                 log(f"  ! font missing: {src}")
         log(f"  -> {font_dst}")
 
+    if not total_entries:
+        log("Nothing merged: the packs in that source are already bilingual. "
+            "Pass --source with a vanilla msg folder (your backup).")
     log(f"Done: {total_fmg} FMGs, {total_entries} entries")
     log(f"Mod files in: {out_dir}")
     return 0
