@@ -3,8 +3,7 @@
   "separator": " / ",
   "categories": {
     "Dialogue": true,
-    "Cutscene Subtitles": true,
-    "Place Names": true
+    "Cutscene Subtitles": true
   },
   "files": {}
 }

@@ -37,7 +37,6 @@ CATEGORY_RULES = [
     ("Help Text", ("Item_help_*", "Single_line_help_*")),
     ("System Messages", ("System_message_*", "System_specific_tags_*")),
     ("Blood Messages", ("Blood_writing_*",)),
-    ("Place Names", ("Place_name_*",)),
     ("Item Names", ("*_name_*",)),
     ("Item Descriptions", ("*_description_*", "*_long_desc_*")),
 ]
@@ -45,7 +44,6 @@ CATEGORY_RULES = [
 DEFAULT_CATEGORIES = [
     ("Dialogue", True),
     ("Cutscene Subtitles", True),
-    ("Place Names", True),
 ]
 
 # Paragraph widgets keep a newline between the languages; one-line widgets take the inline
