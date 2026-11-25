@@ -26,7 +26,7 @@ Everything else stays vanilla: menus, items (the bonfire warp list included), ke
 
 ### Notes
 
-- The area title is art, not text: it is drawn from `menu\<LANG>\menu_local.tpf.dcx`, so it ships as a texture and the script never touches it.
+- The area title is art, not text: it is drawn from `menu\<LANG>\menu_local.tpf.dcx`, so it ships as a texture.
 - The English slot draws Chinese with the Chinese font, so those glyphs look a little heavier than in the Chinese slot.
 - Another mod that also replaces `msg` or `menu` cannot be combined with this one.
 
@@ -54,7 +54,7 @@ NPC 对话、过场动画字幕、传送后出现的地区名字：中文在上�
 
 ### 注意
 
-- 地区名大字是贴图不是文本，在 `menu\<LANG>\menu_local.tpf.dcx` 里，由脚本之外单独替换。
+- 地区名大字是贴图不是文本，在 `menu\<LANG>\menu_local.tpf.dcx` 里，所以以贴图形式附带。
 - 英文槽是用中文字体的字形画中文，看起来比中文槽略粗。
 - 别的 mod 也换 `msg` 或 `menu` 时无法共存。
 

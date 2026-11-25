@@ -9,8 +9,5 @@ __pycache__/
 # Yabber can sit anywhere under the package root, but never in the repo
 Yabber*/
 
-# copied out of the installed game; the release zip ships it
-font/
-
 # local Nexus description draft, not part of the package
 nexus-description.txt
