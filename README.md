@@ -14,13 +14,13 @@ Close the game. Copy `msg\`, `font\` and `menu\` over the `DARK SOULS REMASTERED
 
 ### Rebuild
 
-Windows PowerShell (built in) and [Yabber](https://github.com/JKAnderson/Yabber/releases). Yabber goes in the package root (a folder named `Yabber*`, e.g. `Yabber 1.3.1\`) or under `tools\`; anywhere else, pass `-Yabber <folder>`.
+Python 3 and [Yabber](https://github.com/JKAnderson/Yabber/releases). Yabber goes in the package root (a folder named `Yabber*`, e.g. `Yabber 1.3.1\`) or under `tools\`; anywhere else, pass `--yabber <folder>`.
 
 ```
-powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
+python tools\dualsub.py
 ```
 
-Defaults: reads `source\`, writes `msg\`. Options only when needed: `-Source` / `-Out`, `-Game`, `-Yabber`, `-Filter "menu"`, `-KeepWork`.
+Defaults: reads `source\`, writes `msg\`. Options only when needed: `--source` / `--out`, `--game`, `--yabber`, `--config`, `--filter "menu"`, `--keep-work`.
 
 `tools\dualsub.config.json`:
 
@@ -66,13 +66,13 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 
 ### 重新生成
 
-Windows 自带的 PowerShell，加上 [Yabber](https://github.com/JKAnderson/Yabber/releases)。Yabber 解压到包根（目录名以 `Yabber` 开头，如 `Yabber 1.3.1\`）或 `tools\` 下都行；放在别处就用 `-Yabber <目录>` 指过去。
+Python 3，加上 [Yabber](https://github.com/JKAnderson/Yabber/releases)。Yabber 解压到包根（目录名以 `Yabber` 开头，如 `Yabber 1.3.1\`）或 `tools\` 下都行；放在别处就用 `--yabber <目录>` 指过去。
 
 ```
-powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
+python tools\dualsub.py
 ```
 
-默认读包里的 `source\`、写回包里的 `msg\`。要换路径或只重建一部分时才加参数：`-Source` / `-Out`、`-Game`、`-Yabber`、`-Filter "menu"`、`-KeepWork`。
+默认读包里的 `source\`、写回包里的 `msg\`。要换路径或只重建一部分时才加参数：`--source` / `--out`、`--game`、`--yabber`、`--config`、`--filter "menu"`、`--keep-work`。
 
 `tools\dualsub.config.json`：
 
@@ -116,4 +116,4 @@ Sibling project: [Dual Subtitle for DARK SOULS III](https://github.com/sausrau82
 
 ## License
 
-[LICENSE](LICENSE) (MIT) covers the files written for this project — `tools/dualsub.ps1`, its config, this README. It does not cover the game text under `msg/` and `source/`, the font under `font/` or the atlases under `menu/` (modified FromSoftware / Bandai Namco content, offline single-player use only). Not affiliated with FromSoftware or Bandai Namco.
+[LICENSE](LICENSE) (MIT) covers the files written for this project — `tools/dualsub.py`, its config, this README. It does not cover the game text under `msg/` and `source/`, the font under `font/` or the atlases under `menu/` (modified FromSoftware / Bandai Namco content, offline single-player use only). Not affiliated with FromSoftware or Bandai Namco.

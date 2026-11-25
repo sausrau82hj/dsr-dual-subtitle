@@ -2,6 +2,10 @@
 _work/
 *.zip
 
+# python bytecode
+__pycache__/
+*.pyc
+
 # Yabber can sit anywhere under the package root, but never in the repo
 Yabber*/
 
