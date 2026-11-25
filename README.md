@@ -30,14 +30,6 @@ Everything else stays vanilla: menus, items (the bonfire warp list included), ke
 - The English slot draws Chinese with the Chinese font, so those glyphs look a little heavier than in the Chinese slot.
 - Another mod that also replaces `msg` or `menu` cannot be combined with this one.
 
-### Rebuild
-
-`tools\dualsub.py` (Python 3, standard library only) merges dialogue and cutscene subtitles, nothing else. It needs [Yabber](https://github.com/JKAnderson/Yabber/releases) and a vanilla `msg\` — the packs you installed are already merged, so point it at your backup.
-
-```
-python tools\dualsub.py --source <backup folder> --yabber <Yabber folder>
-```
-
 ---
 
 ## 中文
@@ -66,16 +58,8 @@ NPC 对话、过场动画字幕、传送后出现的地区名字：中文在上�
 - 英文槽是用中文字体的字形画中文，看起来比中文槽略粗。
 - 别的 mod 也换 `msg` 或 `menu` 时无法共存。
 
-### 重新生成
-
-`tools\dualsub.py`（Python 3，只用标准库）只合并对话和过场字幕。需要 [Yabber](https://github.com/JKAnderson/Yabber/releases) 和一份原版 `msg\` —— 装进游戏的包已经合并过，要用备份做源。
-
-```
-python tools\dualsub.py --source <备份目录> --yabber <Yabber 目录>
-```
-
 ---
 
 ## License / 许可证
 
-[LICENSE](LICENSE) (MIT) covers the files written for this project — `tools/dualsub.py`, its config, this README. It does not cover the game text under `msg/`, the font under `font/` or the atlases under `menu/` (modified FromSoftware / Bandai Namco content, offline single-player use only). Not affiliated with FromSoftware or Bandai Namco.
+[LICENSE](LICENSE) (MIT) covers this README. It does not cover the game text under `msg/`, the font under `font/` or the atlases under `menu/` (modified FromSoftware / Bandai Namco content, offline single-player use only). Not affiliated with FromSoftware or Bandai Namco.
