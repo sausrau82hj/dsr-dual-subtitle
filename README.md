@@ -49,8 +49,8 @@ Text that already wraps keeps its newline. Dialogue and cutscene subtitles are f
 
 - The area title is drawn from `menu\<LANG>\menu_local.tpf.dcx` (`Menu20`/`Menu21` for the base game, `Menu30` for the DLC, the vanilla rule between the two languages), not from `msg`, so it ships as art; the same Chinese-first atlas goes into both slots. The build script writes `msg` and `font` only.
 - One-line widgets take ` / ` between the languages, paragraphs a newline; a widget that already wraps keeps its own line breaks. Rows sized for one short label — key prompts, yes/no buttons, item names in a list — run wide or spill.
-- Interaction prompts and menu labels sit in a field one label wide, so those keep the game's own language; longer prompt lines stay bilingual.
-- The item detail panel takes about 18 lines: long descriptions keep the game's own language in full and cut the other one where the panel ends, with `...`.
+- A one-line label is only merged when it does not grow past the string the game shipped; otherwise the entry keeps the game's own language, so nothing overlaps.
+- Long descriptions are merged only when both languages fit the panel (about 18 lines); otherwise the entry keeps the game's own language.
 - 7 dialogue entries still run past the bottom of the box.
 - Another mod that also replaces `msg` or `menu` cannot be combined with this one.
 
@@ -101,8 +101,8 @@ powershell -ExecutionPolicy Bypass -File tools\dualsub.ps1
 
 - 屏幕中央的地名是贴图，在 `menu\<LANG>\menu_local.tpf.dcx` 里（本体 `Menu20`/`Menu21`、DLC `Menu30`，中英之间用原版那条线分隔），不在 `msg` 里，所以以图片形式附带；两个语言槽用的是同一份中文优先的图集。生成脚本只写 `msg` 和 `font`。
 - 单行控件用 ` / ` 连接，段落换行；原文本来带换行的保留自己的换行。按键提示、是/否按钮、列表里的道具名这些只有一格宽的框会变宽或溢出。
-- 交互提示、菜单标签的框只有一个标签宽，这些保留游戏语言；较长的提示行仍然双语。
-- 道具详情框大约放 18 行：长说明保留游戏语言全文，另一种语言在框底截断并加 `...`。
+- 单行标签只在不比原版串更宽时才合并；放不下的条目保留游戏语言，不会相互重叠。
+- 长说明只在两种语言都放得进详情框（约 18 行）时才合并；放不下就保留游戏语言。
 - 还有 7 条对话会顶到对话框下沿。
 - 别的 mod 也换 `msg` 或 `menu` 时无法共存。
 

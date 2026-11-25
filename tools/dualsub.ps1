@@ -373,27 +373,6 @@ function Get-FitSpec {
     return $null
 }
 
-function Get-PreviewText {
-    param([string]$Text, [int]$Width, [int]$MaxLines)
-    $out = New-Object System.Collections.Generic.List[string]
-    $used = 0
-    foreach ($line in ($Text -split "`n")) {
-        $trim = $line.TrimEnd()
-        if ($trim.Trim() -eq '') {
-            if ($out.Count -gt 0 -and $out[$out.Count - 1] -ne '') { $out.Add(''); $used++ }
-            continue
-        }
-        $need = [Math]::Max(1, [int][Math]::Ceiling((Get-TextUnits $trim) / $Width))
-        if ($used + $need -gt $MaxLines) {
-            if ($out.Count -gt 0) { $out[$out.Count - 1] = $out[$out.Count - 1].TrimEnd() + '...' }
-            break
-        }
-        $out.Add($trim)
-        $used += $need
-    }
-    return ($out -join "`n")
-}
-
 function Get-MergedText {
     param([string]$Top, [string]$Bottom, [string]$Inline, $Fit)
     if (-not $Fit) { return $null }
@@ -405,24 +384,19 @@ function Get-MergedText {
         if ((Get-RenderedLines $flat $Fit.Width) -le (Get-RenderedLines $stacked $Fit.Width)) { return $flat }
         return $stacked
     }
-    # Long descriptions: the primary language in full, the secondary cut where the panel ends,
-    # keeping its own line breaks and a trailing ellipsis.
-    $topLines = Get-RenderedLines $Top $Fit.Width
-    $budget = $Fit.Max - $topLines
-    if ($budget -lt 2) { $budget = 2 }
-    $preview = Get-PreviewText $Bottom $Fit.Width $budget
-    if (-not $preview) { return $Top }
-    return ($Top + "`n" + $preview)
+    # Long descriptions: both languages in full when they fit the panel, otherwise only the
+    # game's own language - no half line, no ellipsis.
+    return $Top
 }
 
-function Test-NarrowLabel {
+function Test-FitsInline {
     param([string]$Fmg, [string]$Top, [string]$Bottom, [string]$Inline)
-    # Interaction prompts and menu labels sit in fields one short label wide: the merged line
-    # would run past the field, so those keep the game's own language only.
-    if ($Fmg -notlike 'Event_text_*') { return $false }
-    $width = [Math]::Min((Get-TextUnits $Top), (Get-TextUnits $Bottom))
-    if ($width -gt 12) { return $false }
-    return ((Get-TextUnits ($Top + $Inline + $Bottom)) -gt 24)
+    # A one-line field is sized for the string the game shipped. A merged line that runs past
+    # that width overlaps its neighbour, so those entries keep the game's own language only.
+    if ($Fmg -like 'Conversation_*' -or $Fmg -like 'Movie_subtitles_*' -or $Fmg -like 'Dialogue_*' -or $Fmg -like '*_long_desc_*') { return $true }
+    if ($Top.Contains("`n") -or $Bottom.Contains("`n")) { return $true }
+    $budget = [Math]::Max((Get-TextUnits $Top), (Get-TextUnits $Bottom)) + 4
+    return ((Get-TextUnits ($Top + $Inline + $Bottom)) -le $budget)
 }
 
 function Test-AlreadyMerged {
@@ -478,7 +452,7 @@ function Update-Fmg {
             if ($top.Contains("`n") -or $bottom.Contains("`n")) { $useSep = "`n" } else { $useSep = $Inline }
         }
         if (Test-AlreadyMerged $top $bottom $useSep) { continue }
-        if (Test-NarrowLabel $Fmg $top $bottom $Inline) { continue }
+        if (-not (Test-FitsInline $Fmg $top $bottom $Inline)) { continue }
         $text = $null
         if ($fit) { $text = Get-MergedText $top $bottom $Inline $fit }
         if (-not $text) { $text = $top + $useSep + $bottom }
