@@ -288,14 +288,14 @@ def truncated(text: str, max_units: int) -> str:
     return result.rstrip()
 
 
-def inline_text(top: str, bottom: str, inline: str) -> str:
+def inline_text(top: str, bottom: str, inline: str, wide: bool = False) -> str:
     widest = max(units(top), units(bottom))
     if widest <= 6:
         return top
     merged = top + inline + bottom
-    # fill the field: a one-line row usually takes twice the game's own string, so only text
-    # that would clearly run past the row gets cut
-    budget = max(widest * 2, widest + 10)
+    # Item panels have room to spare, so there the merged line may reach twice the game's own
+    # string; menu rows only get a short margin before the text is cut at the field edge.
+    budget = widest * 2 if wide else widest + 10
     # a couple of characters over the edge is not worth cutting a word for
     if units(merged) <= budget + 2:
         return merged
@@ -390,7 +390,7 @@ def text_map(yabber: dict, fmg_dir: str, fmg: str) -> dict:
 
 
 def update_fmg(yabber: dict, fmg_dir: str, fmg: str, top_map: dict, bottom_map: dict,
-               mode: str, sep, inline: str) -> int:
+               mode: str, sep, inline: str, wide: bool = False) -> int:
     path = os.path.join(fmg_dir, fmg)
     xml_path = path + ".xml"
     tree = ET.parse(xml_path)
@@ -417,9 +417,12 @@ def update_fmg(yabber: dict, fmg_dir: str, fmg: str, top_map: dict, bottom_map: 
             use_sep = "\n" if ("\n" in top or "\n" in bottom) else inline
         if already_merged(top, bottom, use_sep):
             continue
+        if fmg.lower().startswith("event_text_") and min(units(top), units(bottom)) <= 12:
+            continue
         text = merged_text(top, bottom, inline, fit) if fit else None
         if not text:
-            text = inline_text(top, bottom, inline) if use_sep == inline else top + use_sep + bottom
+            text = (inline_text(top, bottom, inline, wide=wide) if use_sep == inline
+                    else top + use_sep + bottom)
         el.text = text
         changed += 1
     if changed:
@@ -471,17 +474,16 @@ def main() -> int:
         else:
             cfg[key] = value
 
+    out_dir = args.out or pack_root
+    game_dir = args.game or default_game()
+
     source = args.source
     if not source:
         packaged = os.path.join(pack_root, "source")
-        source = packaged if os.path.isdir(os.path.join(packaged, "msg")) else None
-    if not source:
-        fail("No source folder: the package holds source\\, or pass --source <game folder>.")
+        source = packaged if os.path.isdir(os.path.join(packaged, "msg")) else game_dir
     if not os.path.isdir(os.path.join(source, "msg")):
         fail(f"Text packs not found: {os.path.join(source, 'msg')}")
 
-    out_dir = args.out or pack_root
-    game_dir = args.game or default_game()
     yabber_dir = args.yabber or cfg.get("yabber_dir") or find_yabber(pack_root, script_dir)
     yabber = {"dir": yabber_dir,
               "exe": os.path.join(yabber_dir, "Yabber.exe"),
@@ -536,7 +538,8 @@ def main() -> int:
                     continue
                 sep = separator_for(cfg, pack, fmg)
                 count = update_fmg(yabber, dirs[lang]["fmg_dir"], fmg, texts[CJK_SLOT][fmg],
-                                   texts["ENGLISH"][fmg], mode, sep, inline_sep(cfg))
+                                   texts["ENGLISH"][fmg], mode, sep, inline_sep(cfg),
+                                   wide=(name == "item"))
                 if count:
                     changed += count
                     total_fmg += 1
