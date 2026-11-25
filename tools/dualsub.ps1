@@ -417,6 +417,16 @@ function Get-MergedText {
     return ($Top + "`n" + $preview)
 }
 
+function Test-NarrowLabel {
+    param([string]$Fmg, [string]$Top, [string]$Bottom, [string]$Inline)
+    # Interaction prompts and menu labels sit in fields one short label wide: the merged line
+    # would run past the field, so those keep the game's own language only.
+    if ($Fmg -notlike 'Event_text_*') { return $false }
+    $width = [Math]::Min((Get-TextUnits $Top), (Get-TextUnits $Bottom))
+    if ($width -gt 12) { return $false }
+    return ((Get-TextUnits ($Top + $Inline + $Bottom)) -gt 24)
+}
+
 function Test-AlreadyMerged {
     param([string]$T1, [string]$T2, [string]$Sep)
     if (-not $Sep) { return $false }
@@ -470,6 +480,7 @@ function Update-Fmg {
             if ($top.Contains("`n") -or $bottom.Contains("`n")) { $useSep = "`n" } else { $useSep = $Inline }
         }
         if (Test-AlreadyMerged $top $bottom $useSep) { continue }
+        if (Test-NarrowLabel $Fmg $top $bottom $Inline) { continue }
         $text = $null
         if ($fit) { $text = Get-MergedText $top $bottom $Inline $fit }
         if (-not $text) { $text = $top + $useSep + $bottom }
@@ -603,9 +614,12 @@ foreach ($name in $cfg['categories'].Keys) {
     if ((Get-ValueMode $cfg['categories'][$name]) -ne 'off') { $uiOn = $true }
 }
 if ($uiOn) { $fontFiles += @('DSFont24.ccm.dcx', 'DSFont24.tpf.dcx') }
-$fontSrcDir = Join-Path $gameDir ("font\" + $primaryLang.ToLowerInvariant())
+# Every slot shows Chinese somewhere, so every non-Chinese slot needs the Chinese atlas; the
+# Chinese slot already has it.
+$cjkLang = 'SCHINESE'
+$fontSrcDir = Join-Path $gameDir ("font\" + $cjkLang.ToLowerInvariant())
 foreach ($lang in $langs) {
-    if ($lang -eq $primaryLang) { continue }
+    if ($lang -eq $cjkLang) { continue }
     $fontDst = Join-Path $outDir ("font\" + $lang)
     New-Item -ItemType Directory -Path $fontDst -Force | Out-Null
     foreach ($f in $fontFiles) {
