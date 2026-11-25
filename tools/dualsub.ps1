@@ -73,7 +73,8 @@ $DefaultCategories = [ordered]@{
 # separator; everything else follows the entry itself (a newline only where the source has one).
 $MultilineFmgs = @('Conversation_*', 'Movie_subtitles_*', 'Dialogue_*', '*_long_desc_')
 $OneLineFmgs = @('*_name_*', 'Place_name_*', 'NPC_name_*', 'Key_guide_*', 'Single_line_help_*',
-                 'Item_help_*', '*_description_*', 'System_specific_tags_*', 'Text_display_tag_list_*')
+                 'Item_help_*', '*_description_*', 'System_specific_tags_*', 'Text_display_tag_list_*',
+                 'Menu_general_text_*', 'Menu_others_*', 'Ingame_menu_*', 'Event_text_*')
 
 function Write-Log { param([string]$Message) Write-Host $Message }
 
@@ -384,19 +385,52 @@ function Get-MergedText {
         if ((Get-RenderedLines $flat $Fit.Width) -le (Get-RenderedLines $stacked $Fit.Width)) { return $flat }
         return $stacked
     }
-    # Long descriptions: both languages in full when they fit the panel, otherwise only the
-    # game's own language - no half line, no ellipsis.
-    return $Top
+    # Long descriptions: the primary in full, then as many of the secondary's own lines as the
+    # panel still takes - whatever is left over is simply not written.
+    $topLines = Get-RenderedLines $Top $Fit.Width
+    $budget = $Fit.Max - $topLines
+    if ($budget -lt 1) { return $Top }
+    $keep = New-Object System.Collections.Generic.List[string]
+    $used = 0
+    foreach ($line in ($Bottom -split "`n")) {
+        $need = [Math]::Max(1, [int][Math]::Ceiling((Get-TextUnits $line) / $Fit.Width))
+        if ($used + $need -gt $budget) { break }
+        $keep.Add($line)
+        $used += $need
+    }
+    if ($keep.Count -eq 0) { return $Top }
+    return ($Top + "`n" + ($keep -join "`n"))
 }
 
-function Test-FitsInline {
-    param([string]$Fmg, [string]$Top, [string]$Bottom, [string]$Inline)
-    # A one-line field is sized for the string the game shipped. A merged line that runs past
-    # that width overlaps its neighbour, so those entries keep the game's own language only.
-    if ($Fmg -like 'Conversation_*' -or $Fmg -like 'Movie_subtitles_*' -or $Fmg -like 'Dialogue_*' -or $Fmg -like '*_long_desc_*') { return $true }
-    if ($Top.Contains("`n") -or $Bottom.Contains("`n")) { return $true }
-    $budget = [Math]::Max((Get-TextUnits $Top), (Get-TextUnits $Bottom)) + 4
-    return ((Get-TextUnits ($Top + $Inline + $Bottom)) -le $budget)
+function Get-Truncated {
+    param([string]$Text, [int]$MaxUnits)
+    if ((Get-TextUnits $Text) -le $MaxUnits) { return $Text }
+    $sb = New-Object System.Text.StringBuilder
+    $used = 0
+    $lastSpace = -1
+    foreach ($ch in $Text.ToCharArray()) {
+        $w = Get-TextUnits ([string]$ch)
+        if ($used + $w -gt $MaxUnits) { break }
+        [void]$sb.Append($ch)
+        $used += $w
+        if ($ch -eq ' ') { $lastSpace = $sb.Length - 1 }
+    }
+    $out = $sb.ToString()
+    if ($lastSpace -gt [int]($out.Length * 0.6)) { $out = $out.Substring(0, $lastSpace) }
+    return $out.TrimEnd()
+}
+
+function Get-InlineText {
+    param([string]$Top, [string]$Bottom, [string]$Inline)
+    # A one-line field is sized for the string the game shipped. Merged text that runs past it
+    # is cut where the field ends instead of spilling over the next label; a label only a couple
+    # of characters wide never takes a second language at all.
+    $widest = [Math]::Max((Get-TextUnits $Top), (Get-TextUnits $Bottom))
+    if ($widest -le 6) { return $Top }
+    $merged = $Top + $Inline + $Bottom
+    $budget = $widest + 10
+    if ((Get-TextUnits $merged) -le $budget) { return $merged }
+    return (Get-Truncated $merged $budget)
 }
 
 function Test-AlreadyMerged {
@@ -452,10 +486,12 @@ function Update-Fmg {
             if ($top.Contains("`n") -or $bottom.Contains("`n")) { $useSep = "`n" } else { $useSep = $Inline }
         }
         if (Test-AlreadyMerged $top $bottom $useSep) { continue }
-        if (-not (Test-FitsInline $Fmg $top $bottom $Inline)) { continue }
         $text = $null
         if ($fit) { $text = Get-MergedText $top $bottom $Inline $fit }
-        if (-not $text) { $text = $top + $useSep + $bottom }
+        if (-not $text) {
+            if ($useSep -eq $Inline) { $text = Get-InlineText $top $bottom $Inline }
+            else { $text = $top + $useSep + $bottom }
+        }
         $el.InnerText = $text
         $changed++
     }
