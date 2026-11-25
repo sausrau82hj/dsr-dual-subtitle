@@ -2,10 +2,6 @@
 _work/
 *.zip
 
-# bytecode written by tools/dualsub.py
-__pycache__/
-*.pyc
-
 # Yabber can sit anywhere under the package root, but never in the repo
 Yabber*/
 
