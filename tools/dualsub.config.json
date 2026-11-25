@@ -4,16 +4,7 @@
   "categories": {
     "Dialogue": true,
     "Cutscene Subtitles": true,
-    "Dialogue Boxes": true,
-    "Event Text": true,
-    "Menu Text": true,
-    "Key Prompts": true,
-    "Help Text": true,
-    "System Messages": true,
-    "Blood Messages": true,
-    "Place Names": true,
-    "Item Names": true,
-    "Item Descriptions": true
+    "Place Names": true
   },
   "files": {}
 }

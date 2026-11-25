@@ -45,16 +45,7 @@ CATEGORY_RULES = [
 DEFAULT_CATEGORIES = [
     ("Dialogue", True),
     ("Cutscene Subtitles", True),
-    ("Dialogue Boxes", True),
-    ("Event Text", True),
-    ("Menu Text", True),
-    ("Key Prompts", True),
-    ("Help Text", True),
-    ("System Messages", True),
-    ("Blood Messages", True),
     ("Place Names", True),
-    ("Item Names", True),
-    ("Item Descriptions", True),
 ]
 
 # Paragraph widgets keep a newline between the languages; one-line widgets take the inline
@@ -290,8 +281,6 @@ def truncated(text: str, max_units: int) -> str:
 
 def inline_text(top: str, bottom: str, inline: str, wide: bool = False) -> str:
     widest = max(units(top), units(bottom))
-    if widest <= 6:
-        return top
     merged = top + inline + bottom
     # Item panels have room to spare, so there the merged line may reach twice the game's own
     # string; menu rows only get a short margin before the text is cut at the field edge.
